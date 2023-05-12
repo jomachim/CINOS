@@ -1,0 +1,2 @@
+-hl profiler.hl hlprofile.dump -out profile.json
+-main ProfileGen
