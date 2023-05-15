@@ -68,7 +68,7 @@ class Level extends GameChildProcess {
 		
 		if (!game.gameStats.has(data.identifier+ "_visited")) {
 			var ach = new Achievement(data.identifier+"_visited", "visited", () -> true, () -> {
-				trace("level is being visited");
+				//trace("level is being visited");
 			}, true);
 			game.gameStats.registerState(ach);
 			ach=null;
@@ -106,6 +106,8 @@ class Level extends GameChildProcess {
 			monde=null;
 		}
 		game.hud.notify(game.currentWorldIdentifyer+", "+game.currentLevelIdentifyer,Col.blue(true));
+
+		
 
 		marks = new dn.MarkerMap(cWid, cHei);
 		breakables = new tools.MarkerMap(cWid, cHei);
@@ -243,7 +245,7 @@ class Level extends GameChildProcess {
 	function render() {
 		// Placeholder level render
 		// root.removeChildren();
-
+		
 		var tgb = new h2d.TileGroup(tilesetSource, root);
 		var backlayer = data.l_BackTiles;
 		backlayer.render(tgb);

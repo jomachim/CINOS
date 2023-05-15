@@ -146,8 +146,9 @@ class Game extends AppChildProcess {
 		fx = new Fx();
 		hud = new ui.Hud();
 		camera = new Camera();
-
+		
 		GameStats.clearAll();
+		
 		if (App.ME.currentSavedGame != null) {
 			var sav = App.ME.currentSavedGame.data;
 			// trace(sav.currentWorld);
@@ -181,21 +182,14 @@ class Game extends AppChildProcess {
 			player = new sample.SamplePlayer();
 			// player.spr.addShader(normalShader);
 		}
+		/*miniMap=new MiniMap(hud.root);
+		miniMap.containerMask.scale(1);*/
 		displaceLayer.over(player.spr);
 		if (muz == null) {
 			muz = S.gamebasemusic();
 			muz.playFadeIn(true, App.ME.options.volume * 0.5, 2);
 		}
-		/*var sav = {
-				niveau: player.niveau,
-				currentLevel: currentLevel,
-				gameStats : gameStats,
-				player : player
-			};
-			var dat = Date.now();
-			hxd.Save.save(sav, 'C:\\Users\\joachim\\Desktop\\gameBase-2023\\save',
-				true); // + dat.getDate()+'_'+dat.getMonth()+'_'+dat.getFullYear()+'_'+dat.getHours()+'_'+dat.getMinutes()+'_'+dat.getSeconds()
-		 */
+		
 		if (App.ME.currentSavedGame != null) {
 			// trace(App.ME.currentSavedGame);
 			gameStats.load(App.ME.currentSavedGame.data.achievements);
@@ -215,8 +209,9 @@ class Game extends AppChildProcess {
 		}
 		pain.cook();
 
-		miniMap=new MiniMap(root);
-		miniMap.renderMap();
+		
+		//miniMap.renderMap();
+		//miniMap.updateMapPosition();
 	}
 
 	public function saveGame() {
@@ -246,7 +241,7 @@ class Game extends AppChildProcess {
 			}
 		};
 
-		hxd.Save.save(sav, 'C:\\Users\\joachim\\Desktop\\multiworld\\save_0', true);
+		hxd.Save.save(sav, './save_0', true);
 		sav = null;
 	}
 
@@ -417,6 +412,7 @@ class Game extends AppChildProcess {
 		gameStats.updateAll();
 
 		
+		
 		// <---- check for scriptd here ?
 
 		// <---- Here: instanciate your level entities
@@ -579,7 +575,8 @@ class Game extends AppChildProcess {
 		super.preUpdate();
 		level.cinema.update(tmod);
 		cm.update(tmod);
-		miniMap.renderMap();
+		//miniMap.renderMap();
+		//miniMap.updateMapPosition();
 		// clearing normal map spritBatch color for disp layer.
 		displaceLayer.alpha = 1;
 		colorTexture.clear(Col.fromRGBi(127, 127, 255), 1);

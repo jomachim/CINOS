@@ -38,7 +38,7 @@ class SavesPage extends dn.Process {
 
 		// saves.push();
 		var saved = {};
-		var test = hxd.Save.load(saved, "C:\\Users\\joachim\\Desktop\\multiworld\\save_0", true);
+		var test = hxd.Save.load(saved, "./save_0", true);
 		//trace(test);
 		var saving = {data: test};
 		saves.push(saving);
