@@ -1,3 +1,5 @@
+import h2d.Scene;
+import hxsl.Types.Vec;
 import sample.Door;
 import sample.Computer;
 import sample.Swirl;
@@ -60,6 +62,7 @@ class Game extends AppChildProcess {
 
 	public var frontScroller:h2d.Layers;
 	public var displaceLayer:h2d.Layers;
+	public var fxScene:h2d.Scene;
 
 	public var miniMap:MiniMap;
 
@@ -116,6 +119,7 @@ class Game extends AppChildProcess {
 		scroller = new h2d.Layers();
 		frontScroller = new h2d.Layers();
 		displaceLayer = new h2d.Layers();
+		fxScene = new h2d.Scene();
 
 		root.add(scroller, Const.DP_BG);
 		scroller.add(frontScroller, Const.DP_FRONT);
@@ -146,9 +150,9 @@ class Game extends AppChildProcess {
 		fx = new Fx();
 		hud = new ui.Hud();
 		camera = new Camera();
-		
+
 		GameStats.clearAll();
-		
+
 		if (App.ME.currentSavedGame != null) {
 			var sav = App.ME.currentSavedGame.data;
 			// trace(sav.currentWorld);
@@ -183,13 +187,13 @@ class Game extends AppChildProcess {
 			// player.spr.addShader(normalShader);
 		}
 		/*miniMap=new MiniMap(hud.root);
-		miniMap.containerMask.scale(1);*/
+			miniMap.containerMask.scale(1); */
 		displaceLayer.over(player.spr);
 		if (muz == null) {
 			muz = S.gamebasemusic();
 			muz.playFadeIn(true, App.ME.options.volume * 0.5, 2);
 		}
-		
+
 		if (App.ME.currentSavedGame != null) {
 			// trace(App.ME.currentSavedGame);
 			gameStats.load(App.ME.currentSavedGame.data.achievements);
@@ -209,21 +213,25 @@ class Game extends AppChildProcess {
 		}
 		pain.cook();
 
-		
-		//miniMap.renderMap();
-		//miniMap.updateMapPosition();
+		// miniMap.renderMap();
+		// miniMap.updateMapPosition();
 	}
 
 	public function saveGame() {
 		var achievs = GameStats.save();
 		var dat = Date.now();
-		var sav = {niveau: level.data.iid,
+		var playerPos = {x: player.cx, y: player.cy};
+		var sav = {
+			niveau: level.data.iid,
 			volume: App.ME.options.volume,
 			currentLevel: currentLevel,
 			currentLevelID: currentLevelIdentifyer,
 			currentWorldID: currentWorldIdentifyer,
 			currentWorld: currentWorld,
 			achievements: achievs,
+			playerPosition: playerPos
+		};
+		/*
 			playedTime: dat.getDate()
 			+ '_'
 			+ dat.getMonth()
@@ -235,12 +243,7 @@ class Game extends AppChildProcess {
 			+ dat.getMinutes()
 			+ '_'
 			+ dat.getSeconds(),
-			playerPosition: {
-				x: player.cx,
-				y: player.cy
-			}
-		};
-
+		 */
 		hxd.Save.save(sav, './save_0', true);
 		sav = null;
 	}
@@ -300,7 +303,7 @@ class Game extends AppChildProcess {
 			fx.flashBangS(0xFCE8CC, 1, 1);
 			fx.explosion(player.attachX, player.attachY, 1, 0xff8800, 24);
 			1500;
-			camera.zoomTo(0.5);
+			camera.zoomTo(0.75);
 			bulle.x = player.attachX - 32;
 			bulle.y = player.attachY - 64;
 			500;
@@ -364,7 +367,7 @@ class Game extends AppChildProcess {
 			bulle.y = player.attachY - 64;
 			ca.unlock();
 			500;
-			camera.zoomTo(1);
+			camera.zoomTo(0.75);
 		});
 		cm.onAllComplete = () -> {
 			// trace('cinematic terminated !');
@@ -411,8 +414,6 @@ class Game extends AppChildProcess {
 		level = new Level(l);
 		gameStats.updateAll();
 
-		
-		
 		// <---- check for scriptd here ?
 
 		// <---- Here: instanciate your level entities
@@ -455,6 +456,8 @@ class Game extends AppChildProcess {
 
 		fadeIn(0.25);
 		camera.centerOnTarget();
+
+		root.getScene().camera.clipViewport = true;
 		hud.onLevelStart();
 		dn.Process.resizeAll();
 		App.ME.resetFilters();
@@ -575,15 +578,17 @@ class Game extends AppChildProcess {
 		super.preUpdate();
 		level.cinema.update(tmod);
 		cm.update(tmod);
-		//miniMap.renderMap();
-		//miniMap.updateMapPosition();
+		// miniMap.renderMap();
+		// miniMap.updateMapPosition();
 		// clearing normal map spritBatch color for disp layer.
 		displaceLayer.alpha = 1;
 		colorTexture.clear(Col.fromRGBi(127, 127, 255), 1);
 
 		if (!cd.has('rain')) {
 			cd.setMs('rain', 5000);
-			if(App.ME.options.shaders==true){fx.pixelRain(rnd(0, level.pxWid), rnd(0, level.pxHei), level.pxWid, level.pxHei);}
+			if (App.ME.options.shaders == true) {
+				fx.pixelRain(rnd(0, level.pxWid), rnd(0, level.pxHei), level.pxWid, level.pxHei);
+			}
 		}
 		if (cd.has('areYouWaiting')) {
 			cd.setS('areYouWaiting', 0.1);
@@ -622,7 +627,7 @@ class Game extends AppChildProcess {
 		Assets.door.tmod = tmod;
 
 		hud.healthFlask.refresh(player.life, player.maxLife);
-		
+
 		if (player.isAlive()) {
 			if (!cd.has("gameTimeLock")) {
 				gameTimeS += tmod * 1 / Const.FPS;
@@ -650,9 +655,7 @@ class Game extends AppChildProcess {
 	/** Main loop but limited to 30 fps (so it might not be called during some frames) **/
 	override function fixedUpdate() {
 		super.fixedUpdate();
-		if (App.ME.options.shaders == true) {
-			fx.heatSource(player.attachX, player.attachY, M.fabs(player.v.dx) + M.fabs(player.v.dy));
-		}
+
 		// scroller.drawTo(normalTexture);
 		// Entities "30 fps" loop
 		for (e in Entity.ALL)
@@ -668,11 +671,15 @@ class Game extends AppChildProcess {
 		// App.ME.simpleShader.shader.multiplier = 2; // +player.v.dx;
 		// motionBlur.setHorizontalBlur(player.v.dx);
 		// motionBlur.setVerticalBlur(player.v.dy*4);
-
 		if (App.ME.options.shaders == true) {
+			fx.heatSource(player.attachX, player.attachY, M.fabs(player.v.dx) + M.fabs(player.v.dy));
 			displaceLayer.drawTo(colorTexture);
 			tile.tile = Tile.fromTexture(colorTexture);
 		}
+		// if (App.ME.options.shaders == true) {
+		// displaceLayer.drawTo(colorTexture);
+		// tile.tile = Tile.fromTexture(colorTexture);
+		// }
 		if (!cd.has('blinkshader')) {
 			cd.setS('blinkshader', 1);
 			/*App.ME.resetFilters();
@@ -693,10 +700,10 @@ class Game extends AppChildProcess {
 		if (!App.ME.anyInputHasFocus() && !ui.Modal.hasAny() && !Console.ME.isActive()) {
 			// Exit by pressing ESC twice
 			#if hl
-			if (ca.isKeyboardPressed(K.ESCAPE) && !cd.has("escaping")){
-				if (!cd.hasSetS("exitWarn", 3)){
+			if (ca.isKeyboardPressed(K.ESCAPE) && !cd.has("escaping")) {
+				if (!cd.hasSetS("exitWarn", 3)) {
 					hud.notify(Lang.t._("Press ESCAPE again to exit."));
-				}else{
+				} else {
 					cd.setS("escaping", 1);
 					fadeOut(1, () -> {
 						destroy();

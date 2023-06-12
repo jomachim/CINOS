@@ -261,6 +261,11 @@ class Level extends GameChildProcess {
 		layer.render(tg);
 		
 
+		var al = new h2d.TileGroup(tilesetSource,root);
+		var la = data.l_IntGrider;
+		la.render(al);
+		al.alpha=0.5;
+
 		game.tile=new h2d.Bitmap(Tile.fromTexture(game.colorTexture));
 		//game.displaceLayer.addChild(game.tile);
 		//game.frontScroller.add(game.displaceLayer, Const.DP_FRONT);

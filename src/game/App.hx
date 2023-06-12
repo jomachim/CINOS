@@ -19,10 +19,11 @@ class App extends dn.Process {
 
 	/** Used to create "ControllerAccess" instances that will grant controller usage (keyboard or gamepad) **/
 	public var controller:Controller<GameAction>;
+	public var controller2:Controller<GameAction>;
 
 	/** Controller Access created for Main & Boot **/
 	public var ca:ControllerAccess<GameAction>;
-
+	public var ca2:ControllerAccess<GameAction>;
 	/** If TRUE, game is paused, and a Contrast filter is applied **/
 	public var screenshotMode(default, null) = false;
 
@@ -305,8 +306,11 @@ class App extends dn.Process {
 	/** Init game controller and default key bindings **/
 	function initController() {
 		controller = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
+		controller2 = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
 		ca = controller.createAccess();
+		ca2 = controller2.createAccess();
 		ca.lockCondition = () -> return destroyed || anyInputHasFocus();
+		ca2.lockCondition = () -> return destroyed || anyInputHasFocus();
 
 		initControllerBindings();
 	}
@@ -374,6 +378,7 @@ class App extends dn.Process {
 		controller.bindPadCombo(ToggleDebugDrone, [LSTICK_PUSH, RSTICK_PUSH]);
 		controller.bindKeyboardCombo(ToggleDebugDrone, [K.D, K.CTRL, K.SHIFT]);
 		#end
+		controller2.bindings=controller.bindings;
 	}
 
 	/** Return TRUE if an App instance exists **/

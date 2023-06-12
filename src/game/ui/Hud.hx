@@ -118,7 +118,7 @@ class Hud extends GameChildProcess {
 		notifications.insert(0,f);
 		p.tw.createS(f.x, -f.outerWidth>-2, TEaseOut, 0.1);
 		p.onUpdateCb = ()->{
-			if( p.stime>=durationS && !p.cd.hasSetS("done",Const.INFINITE) )
+			if( p.stime>=durationS && !p.cd.hasSetS("done",Const.INFINITY) )
 				p.tw.createS(f.x, -f.outerWidth, 0.2).end( p.destroy );
 		}
 		p.onDisposeCb = ()->{

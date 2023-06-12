@@ -137,6 +137,14 @@ class Fx extends GameChildProcess {
 		}
 	}
 
+	public inline function portalDoor(x:Float,y:Float){
+		var p = allocBg_add(D.tiles.fxPortal, x , y );
+		p.rotation=rnd(0,3.14);
+		p.lifeS = rnd(0.1,1);
+		p.setFadeS(0.45,0.01,1);
+		p.playAnimLoop(A.tiles, D.tiles.fxPortal, rnd(0.5, 1.5));
+	}
+
 	public inline function heatSource(x:Float, y:Float, v:Float=0.0,?s:Float = 0.1) {
 		var p = allocDisplacer_normal(D.tiles.fxSphereNormal, x, y);
 		p.alpha = v;
@@ -347,9 +355,9 @@ class Fx extends GameChildProcess {
 			p.remove();
 		}
 
-		pi.playAnimLoop(A.tiles, D.tiles.fxLazerImpact, rnd(0.006, 0.8));
+		pi.playAnimLoop(A.tiles, D.tiles.fxLazerImpact, rnd(0.06, 0.8));
 		var pit = allocMain_add(D.tiles.fxLazerImpact, x + (dst - 16) * Math.cos(angle), y + (dst - 16) * Math.sin(angle));
-		pit.playAnimLoop(A.tiles, D.tiles.fxLazerImpact, rnd(0.006, 0.8));
+		pit.playAnimLoop(A.tiles, D.tiles.fxLazerImpact, rnd(0.06, 0.8));
 		pit.randomizeAnimCursor();
 		pit.scaleX = -1; // (angle<0?1:-1);
 		pit.setFadeS(1, 0.01, 0.01);

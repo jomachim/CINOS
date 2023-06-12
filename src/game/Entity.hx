@@ -314,10 +314,10 @@ class Entity {
 		return game != null && !game.destroyed ? sprY * Const.SCALE + game.scroller.y : sprY * Const.SCALE;
 
 	/** attachX value during last frame **/
-	public var prevFrameAttachX(default, null):Float = -Const.INFINITE;
+	public var prevFrameAttachX(default, null):Float = -Const.INFINITY;
 
 	/** attachY value during last frame **/
-	public var prevFrameAttachY(default, null):Float = -Const.INFINITE;
+	public var prevFrameAttachY(default, null):Float = -Const.INFINITY;
 
 	var actions:FixedArray<{id:ChargedAction, cb:Void->Void, t:Float}>;
 

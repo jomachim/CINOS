@@ -19,7 +19,7 @@ class Platform extends Entity {
 	public var startY:Int = 0;
 	public var endY:Int = 0;
 	public var speed:Float = 0;
-	public var maxSpeed:Float = 0.2;
+	public var maxSpeed:Float = 0.1;
 	public var activated:Bool = false;
 
 	public function new(ent:Entity_Platform) {
@@ -37,7 +37,7 @@ class Platform extends Entity {
 		// Placeholder display
 
 		var outline = spr.filter = new dn.heaps.filter.PixelOutline(0xFFFFFF, 0.4);
-		//var bloom = new h2d.filter.Glow(0xeeffee, 0.5, 4, 0.5, 1, true);
+		// var bloom = new h2d.filter.Glow(0xeeffee, 0.5, 4, 0.5, 1, true);
 		var group = new h2d.filter.Group([outline]);
 		spr.filter = group;
 		spr.set(Assets.platform);
@@ -82,34 +82,42 @@ class Platform extends Entity {
 
 	override function fixedUpdate() {
 		super.fixedUpdate();
+	}
+
+	override function frameUpdate() {
+		super.frameUpdate();
 		if (distCase(game.player) < 2) {
-			if(game.player.v.dy<0 && game.player.top<bottom && game.player.left<right && game.player.right>left && !cd.has('recentlyOnElevator')){
-				game.player.v.dy*=-1;
+			if (game.player.v.dy < 0 && game.player.top < bottom && game.player.bottom > bottom && game.player.left < right && game.player.right > left
+				&& !cd.has('recentlyOnElevator')) {
+				game.player.v.dy *= -1;
 				return;
 			}
-			if (game.player.centerX >= left - 16
-				&& game.player.centerX <= right + 16
-				&& (!cd.has('recentlyOnElevator') && game.player.v.dy >= 0)) {
+			if (game.player.centerX >= left - 16 && game.player.centerX <= right + 16 && game.player.v.dy >= 0) { // && (!cd.has('recentlyOnElevator') )
 				// trace('okX');
 				// if(game.player.attachY>=top && game.player.attachY<=bottom){//distCase(game.player.cx,game.player.cy,game.player.xr,game.player.yr)<=1
 				if ((game.player.attachY >= attachY - 16 && game.player.attachY < attachY)
 					&& (!game.player.cd.has("startJumping") || !game.player.cd.has("slamDown"))) {
-					game.player.cd.setMs("recentlyOnElevator", 100);
-					game.player.parented = this;
-					game.player.yr = yr;
-					game.player.v.dy = 0;//speed * dirY > 0 ? speed * dirY : 0;
-					game.player.setPosPixel(game.player.attachX, top);
-					// game.player.preUpdate();
-					//game.player.fixedUpdate();
-					game.player.postUpdate();
-					game.player.cd.setMs('recentlyOnGround', 100);
+					game.player.cd.setMs("recentlyOnElevator", 200);
+
+					if (game.player.parented != this) {
+						game.player.parented = this;
+					}
+					/*game.player.yr = yr;
+						game.player.v.dy = speed * dirY > 0 ? speed * dirY : 0;
+
+						game.player.preUpdate();
+						game.player.setPosPixel(game.player.attachX, top);
+						//game.player.fixedUpdate();
+						game.player.postUpdate(); */
+
+					game.player.cd.setMs('recentlyOnGround', 200);
 					// game.player.cd.setMs("recentMove",50);
 				}
+			} else {
+				game.player.parented = null;
+				// game.camera.stopTracking();
 			}
 		}
 	}
-
-	/*override function frameUpdate() {
-		super.frameUpdate();
-	}*/
+	/**/
 }

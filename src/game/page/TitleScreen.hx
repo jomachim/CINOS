@@ -40,6 +40,7 @@ class TitleScreen extends AppChildProcess {
 	// var optionsButtons:Array<Interactive>=[];
 	var pool:dn.heaps.HParticle.ParticlePool;
 	var fxAdd:h2d.SpriteBatch;
+	var fxAddMultiply:h2d.SpriteBatch;
 	var fxNormal:h2d.SpriteBatch;
 	var upscale = 1.;
 
@@ -93,41 +94,41 @@ class TitleScreen extends AppChildProcess {
 		appearSfx = S.exp02();
 		zik = S.intro();
 		versionNumber = new h2d.Text(Assets.fontPixel);
-		versionNumber.text="Version: "+Const.BUILD_INFO ;//"Version: 0.0.1";
-		versionNumber.x=4;
-		versionNumber.y=h()-24;
+		versionNumber.text = "Version: " + Const.BUILD_INFO; // "Version: 0.0.1";
+		versionNumber.x = 4;
+		versionNumber.y = h() - 24;
 		root.add(versionNumber, Const.DP_UI);
 		bgCol = new h2d.Bitmap(h2d.Tile.fromColor(Col.inlineHex('0xEA9502'))); // hxd.Res.atlas.title.bg.toTile());
 		root.add(bgCol, Const.DP_MAIN);
 
-		//wallNormals = new Bitmap(hxd.Res.atlas.wallNormal.toTile());
+		// wallNormals = new Bitmap(hxd.Res.atlas.wallNormal.toTile());
 		// wallNormals.blendMode=Add;
 		// wallNormals.alpha=0.8;
-		//wallNormals.setScale(0.5);
-		//wallNormals.tile.setCenterRatio();
-		//root.add(wallNormals, Const.DP_MAIN);
+		// wallNormals.setScale(0.5);
+		// wallNormals.tile.setCenterRatio();
+		// root.add(wallNormals, Const.DP_MAIN);
 
-		//wallGloss = new Bitmap(hxd.Res.atlas.wallGloss.toTile());
-		//wallGloss.tile.setCenterRatio();
-		//wallGloss.setScale(1);
+		// wallGloss = new Bitmap(hxd.Res.atlas.wallGloss.toTile());
+		// wallGloss.tile.setCenterRatio();
+		// wallGloss.setScale(1);
 		// root.add(wallGloss,Const.DP_MAIN);
 
-		//wallColors = new Bitmap(hxd.Res.atlas.wallColors.toTile());
-		//wallColors.tile.setCenterRatio();
+		// wallColors = new Bitmap(hxd.Res.atlas.wallColors.toTile());
+		// wallColors.tile.setCenterRatio();
 		// wallColors.setScale(0.5);
-		//root.add(wallColors, Const.DP_MAIN);
+		// root.add(wallColors, Const.DP_MAIN);
 
-		//bg = new h2d.Bitmap(hxd.Res.atlas.wallColors.toTile());
-		//root.add(bg, Const.DP_MAIN);
-		//bg.tile.setCenterRatio();
-		//bg.setScale(0.5);
+		// bg = new h2d.Bitmap(hxd.Res.atlas.wallColors.toTile());
+		// root.add(bg, Const.DP_MAIN);
+		// bg.tile.setCenterRatio();
+		// bg.setScale(0.5);
 
-		//box = new h2d.Bitmap(hxd.Res.atlas.title.box.toTile());
-		//box.tile.setCenterRatio();
+		// box = new h2d.Bitmap(hxd.Res.atlas.title.box.toTile());
+		// box.tile.setCenterRatio();
 		// root.add(box, Const.DP_MAIN);
 
-		//logo = new h2d.Bitmap(hxd.Res.atlas.title.logo.toTile());
-		//logo.tile.setCenterRatio();
+		// logo = new h2d.Bitmap(hxd.Res.atlas.title.logo.toTile());
+		// logo.tile.setCenterRatio();
 		// root.add(logo, Const.DP_MAIN);
 
 		titleHead = new h2d.Bitmap(Assets.tiles.getTile(D.tiles.titleHead));
@@ -146,6 +147,11 @@ class TitleScreen extends AppChildProcess {
 		root.add(fxAdd, Const.DP_FX_FRONT);
 		fxAdd.blendMode = Add;
 		fxAdd.hasRotationScale = true;
+
+		fxAddMultiply = new h2d.SpriteBatch(Assets.tiles.tile);
+		root.add(fxAddMultiply, Const.DP_FX_FRONT);
+		fxAddMultiply.blendMode = AlphaMultiply; // Screen;//AlphaAdd;
+		fxAddMultiply.hasRotationScale = true;
 
 		pressStart = new h2d.Text(Assets.fontPixel);
 		root.add(pressStart, Const.DP_FX_FRONT);
@@ -174,17 +180,17 @@ class TitleScreen extends AppChildProcess {
 		nothing = new h2d.filter.Nothing(); // force rendering for pixel perfect
 		simpleShader = new sample.SimpleShader(20.0);
 		glow = new h2d.filter.Glow(0x2b2ba9, 0.8, 3, 1, 2);
-		//norm = new NormalShader();
-		//tex1 = new Texture(Std.int(wallColors.tile.width), Std.int(wallColors.tile.height), [Target]);
-		//tex = new Texture(Std.int(wallColors.tile.width), Std.int(wallColors.tile.height), [Target]);
-		//wallColors.drawTo(tex1); // .tile.getTexture()
-		//wallNormals.drawTo(tex);
-		//norm.mp = new Vector(0.5, 0.5, 0, 0);
-		//norm.texture = tex1;
-		//norm.normal = tex;
+		// norm = new NormalShader();
+		// tex1 = new Texture(Std.int(wallColors.tile.width), Std.int(wallColors.tile.height), [Target]);
+		// tex = new Texture(Std.int(wallColors.tile.width), Std.int(wallColors.tile.height), [Target]);
+		// wallColors.drawTo(tex1); // .tile.getTexture()
+		// wallNormals.drawTo(tex);
+		// norm.mp = new Vector(0.5, 0.5, 0, 0);
+		// norm.texture = tex1;
+		// norm.normal = tex;
 
-		//wallColors.addShader(norm);
-		//titleHead.addShader(norm);
+		// wallColors.addShader(norm);
+		// titleHead.addShader(norm);
 
 		run();
 	}
@@ -192,12 +198,11 @@ class TitleScreen extends AppChildProcess {
 	var ready = true;
 
 	function run() {
-		if(zik.isPlaying()){
+		if (zik.isPlaying()) {
 			zik.stop();
 			appearSfx = null;
 			zik = null;
 		}
-		
 
 		appearSfx = S.exp02();
 		zik = S.intro();
@@ -206,9 +211,9 @@ class TitleScreen extends AppChildProcess {
 		onResize();
 		var s = upscale;
 		pressStart.alpha = 0;
-		//bg.scale(2);
-		//wallNormals.scale(2);
-		//bg.alpha = 0;
+		// bg.scale(2);
+		// wallNormals.scale(2);
+		// bg.alpha = 0;
 		// box.alpha = 0;
 		// box.colorAdd = new h3d.Vector();
 		// box.colorAdd.r = 0.5;
@@ -221,14 +226,15 @@ class TitleScreen extends AppChildProcess {
 		// logo.alpha = 0;
 
 		// zik.play(true,0.5);
-		if(!zik.isPlaying())
-			zik.playFadeIn(true, App.ME.options.volume*0.5, 2);
+		if (!zik.isPlaying())
+			zik.playFadeIn(true, App.ME.options.volume * 0.5, 2);
+		#if !macro
 		cm.create({
-			//700;
-			//tw.createS(bg.scaleX, s, 1);
-			//tw.createS(bg.scaleY, s, 1);
-			//tw.createS(bg.alpha, 1, 1);
-			//700;
+			// 700;
+			// tw.createS(bg.scaleX, s, 1);
+			// tw.createS(bg.scaleY, s, 1);
+			// tw.createS(bg.alpha, 1, 1);
+			// 700;
 			// box.alpha = 1;
 			// box.scale(2);
 			150 >> shake(0.4);
@@ -248,6 +254,7 @@ class TitleScreen extends AppChildProcess {
 			// tw.createS(logo.colorAdd.g, 0, 0.2);
 			// tw.createS(logo.colorAdd.b, 0, 0.4);
 		});
+		#end
 	}
 
 	function shake(t) {
@@ -292,7 +299,7 @@ class TitleScreen extends AppChildProcess {
 					case 3:
 						mcbs.set(i, () -> {
 							GameStats.clearAll();
-							if(zik.isPlaying())
+							if (zik.isPlaying())
 								zik.stopWithFadeOut(1);
 							fadeOut(1, () -> {
 								destroy();
@@ -359,27 +366,27 @@ class TitleScreen extends AppChildProcess {
 		bgCol.scaleX = w();
 		bgCol.scaleY = h();
 
-		upscale = dn.heaps.Scaler.bestFit_i(titleHead.tile.height, titleHead.tile.height*2); // only height matters
+		upscale = dn.heaps.Scaler.bestFit_i(titleHead.tile.height, titleHead.tile.height * 2); // only height matters
 		// box.setScale(upscale);
-		//bg.setScale(upscale);
-		//wallNormals.setScale(upscale);
-		//wallColors.setScale(upscale);
-		//wallGloss.setScale(upscale);
+		// bg.setScale(upscale);
+		// wallNormals.setScale(upscale);
+		// wallColors.setScale(upscale);
+		// wallGloss.setScale(upscale);
 		// logo.setScale(upscale);
 		titleHead.setScale(upscale);
 		cinos.setScale(upscale);
 		fxAdd.setScale(upscale);
 		fxNormal.setScale(upscale);
-
+		fxAddMultiply.setScale(upscale);
 		pressStart.setScale(upscale);
 		pressStart.setPosition(Std.int(w() * 0.5 - pressStart.textWidth * 0.5 * pressStart.scaleX),
 			Std.int(h() * 0.82 - pressStart.textHeight * 0.5 * pressStart.scaleY));
 
 		// box.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		//bg.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		//wallNormals.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		//wallColors.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		//wallGloss.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
+		// bg.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
+		// wallNormals.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
+		// wallColors.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
+		// wallGloss.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
 		// logo.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
 		titleHead.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.25));
 		cinos.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.65));
@@ -387,6 +394,10 @@ class TitleScreen extends AppChildProcess {
 
 	inline function allocAdd(id:String, x:Float, y:Float):HParticle {
 		return pool.alloc(fxAdd, Assets.tiles.getTile(id), x, y);
+	}
+
+	inline function allocAddMultiply(id:String, x:Float, y:Float):HParticle {
+		return pool.alloc(fxAddMultiply, Assets.tiles.getTile(id), x, y);
 	}
 
 	inline function allocNormal(id:String, x:Float, y:Float):HParticle {
@@ -403,6 +414,14 @@ class TitleScreen extends AppChildProcess {
 			root.y = 0;
 
 		pressStart.visible = Std.int(stime / 0.25) % 2 == 0;
+		if (rnd(0, 1000) < 5) {
+			cd.setS("blob", 2);
+		}
+		if (cd.has("blob")) {
+			var r = cd.getRatio("blob");
+			cinos.scaleX = 1 + 2*Math.sin(ftime / 1000) * r;
+			cinos.scaleY = cinos.scaleX;
+		}
 
 		if (ready && !cd.hasSetS("fx", 0.03)) {
 			var w = w() / upscale;
@@ -435,7 +454,7 @@ class TitleScreen extends AppChildProcess {
 				p.lifeS = rnd(1, 2);
 			}
 			for (i in 0...4) {
-				var p = allocAdd(D.tiles.leaf+irnd(0,2), rnd(0, w * 0.8), rnd(0, h * 0.7));
+				var p = allocAdd(D.tiles.leaf + irnd(0, 2), rnd(0, w * 0.8), rnd(0, h * 0.7));
 				p.setFadeS(rnd(0.2, 0.5), 1, rnd(1, 2));
 				p.colorAnimS(Col.inlineHex("#ff6900"), Assets.dark(), rnd(1, 3));
 				p.alphaFlicker = rnd(0.2, 0.5);
@@ -447,6 +466,20 @@ class TitleScreen extends AppChildProcess {
 				// p.dy = rnd(0,1,true);
 				p.frict = R.aroundBO(0.98, 5);
 				p.lifeS = rnd(1, 2);
+			}
+			if (rnd(0, 100) < 15) {
+				var r = irnd(1, 16);
+				for (i in 0...r) {
+					var p = allocAddMultiply(D.tiles.fxFlare, w * 0.5, h * 0.5 + rnd(-1, 1) * i * 1000 * Math.sin(i / 180 * 3.1415));
+					// p.rotation=rnd(0,180)*180/3.1415;
+					p.scaleX = 16;
+					p.scaleY = rnd(0.001, 2);
+					p.colorAnimS(Col.inlineHex("#ffffff"), Assets.dark(), rnd(0.1, 3));
+					p.dy = 100 * rnd(-0.05, 0.05);
+					p.alpha = rnd(0.1, 0.85);
+					p.frict = R.aroundBO(0.988, 1);
+					p.lifeS = rnd(0.1, 1);
+				}
 			}
 		}
 	}
@@ -471,7 +504,7 @@ class TitleScreen extends AppChildProcess {
 			// logo.setScale(upscale + s);
 			s *= 0.9;
 		});
-		if(zik.isPlaying())
+		if (zik.isPlaying())
 			zik.stopWithFadeOut(1);
 
 		fadeOut(1, () -> {
@@ -490,11 +523,11 @@ class TitleScreen extends AppChildProcess {
 		appearSfx.dispose();
 		zik = null;
 		appearSfx = null;
-		disp=null;
-		norm=null;
-		nothing=null;
-		simpleShader=null;
-		glow=null;
+		disp = null;
+		norm = null;
+		nothing = null;
+		simpleShader = null;
+		glow = null;
 
 		// tw=null;
 		for (i in 0...bts.length) {
@@ -506,15 +539,15 @@ class TitleScreen extends AppChildProcess {
 
 	override function update() {
 		super.update();
-		//wallColors.drawTo(tex1); // .tile.getTexture()
+		// wallColors.drawTo(tex1); // .tile.getTexture()
 		// wallNormals.visible=true;
-		//wallNormals.drawTo(tex);
+		// wallNormals.drawTo(tex);
 		// wallNormals.visible=false;
-		//norm.texture = tex1;
-		//norm.normal = tex;
-		//norm.mp = App.ME.mousePos == null ? new Vector(0, 0, 0, 0) : App.ME.mousePos;
+		// norm.texture = tex1;
+		// norm.normal = tex;
+		// norm.mp = App.ME.mousePos == null ? new Vector(0, 0, 0, 0) : App.ME.mousePos;
 		if (ca.isKeyboardDown(Key.T)) {
-			//trace(Std.string(norm.mp));
+			// trace(Std.string(norm.mp));
 		}
 		if (ca.isDown(MoveDown) && !cd.has('select')) {
 			cd.setS('select', 0.15);

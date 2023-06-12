@@ -19,8 +19,8 @@ class Const {
 	/** Grid size in pixels **/
 	public static final GRID = 16;
 	public static final CYCLE_S = 10;
-	/** "Infinite", sort-of. More like a "big number" **/
-	public static final INFINITE : Int = 0xfffFfff;
+	/** "INFINITY", sort-of. More like a "big number" **/
+	public static final INFINITY = 4294967295;//: Int = 0xfffFfff
 	
 	static var _nextUniqueId = 0;
 	/** Unique value generator **/

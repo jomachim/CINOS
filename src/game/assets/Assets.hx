@@ -64,6 +64,7 @@ class Assets {
 		tiles.defineAnim("fxRoll", "0-2(1)");
 		tiles.defineAnim("fxPouf", "0-2(1)");
 		tiles.defineAnim("fxPower", "0-2(1)");
+		tiles.defineAnim("fxPortal", "0-3(2)");
 		hero = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.hero.toAseprite());
 		boss = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.boss.toAseprite());
 		ventilo = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.ventilo.toAseprite());

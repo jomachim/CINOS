@@ -1,17 +1,16 @@
 Null access
-BUILD: 2023-04-18-01-55-05--hldx-64
+BUILD: 2023-05-26-04-52-11--hlsdl-64
 EXCEPTION:
 
-Called from Game.fixedUpdate (Game.hx line 591)
-Called from dn.$Process._doFixedUpdate (dn/Process.hx line 576)
-Called from dn.$Process._doFixedUpdate (dn/Process.hx line 585)
-Called from dn.$Process.updateAll (dn/Process.hx line 708)
+Called from sample.SamplePlayer.preUpdate (sample/SamplePlayer.hx line 358)
+Called from Game.preUpdate (Game.hx line 604)
+Called from dn.$Process.updateAll (dn/Process.hx line 702)
 Called from Boot.update (Boot.hx line 62)
 Called from Boot.update (Boot.hx line 58)
 CALL:
 
-Called from $App.onCrash (App.hx line 132)
-Called from $App.onCrash (App.hx line 126)
+Called from $App.onCrash (App.hx line 148)
+Called from $App.onCrash (App.hx line 142)
 Called from Boot.update (Boot.hx line 69)
 Called from hxd.App.mainLoop (hxd/App.hx line 193)
 Called from hxd.$System.mainLoop (hxd/System.hl.hx line 76)

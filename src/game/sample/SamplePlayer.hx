@@ -11,36 +11,41 @@ import hxd.snd.openal.AudioTypes.BufferHandle;
 **/
 class SamplePlayer extends Entity {
 	public var ca:ControllerAccess<GameAction>;
+
+	// public var ca2:ControllerAccess<GameAction>;
 	var walkSpeed = 0.;
 	var jumpSpeed = 0.;
+
 	public var lazerAngle = 0.1;
+
 	var gamePadDir:Int = 0;
 	var dashSpeed:Float = 0.85;
-	public var lazerCoolDownTime:Float=2.5;
+
+	public var lazerCoolDownTime:Float = 2.5;
+
 	var lastDir:Int = 0;
 
 	public var normalShader:NormalShader;
 	public var inventory:Array<Dynamic>;
 
 	public var timeBonus:Float = 120;
-	public var jumpTime:Float=0;
-	public var xp:Float=1;
-	public var niveau:Float=1;
+	public var jumpTime:Float = 0;
+	public var xp:Float = 1;
+	public var niveau:Float = 1;
 	public var speedX(get, never):Float;
 	public var speedY(get, never):Float;
 
 	public var destination = {
 		level: null,
 		door: null,
-		layer:null,
-		world:null
+		layer: null,
+		world: null
 	}
-	public var parented:Null<Entity>=null;
-
+	public var parented:Null<Entity> = null;
 
 	inline function get_speedX()
 		return v.dx;
-	
+
 	inline function get_speedY()
 		return v.dy;
 
@@ -48,7 +53,7 @@ class SamplePlayer extends Entity {
 	var onGround(get, never):Bool;
 
 	inline function get_onGround()
-		return !destroyed && ((v.dy == 0 && yr == 1 && level.hasCollision(cx, cy + 1)) || cd.has('recentlyOnElevator'));//
+		return !destroyed && ((v.dy == 0 && yr == 1 && level.hasCollision(cx, cy + 1)) || cd.has('recentlyOnElevator')); //
 
 	var onSlope(get, never):Bool;
 
@@ -57,48 +62,51 @@ class SamplePlayer extends Entity {
 
 	public function new() {
 		super(5, 5);
-		inventory=[];
+		inventory = [];
 		// Start point using level entity "PlayerStart"
 		var start = level.data.l_Entities.all_PlayerStart[0];
 		if (start != null)
 			setPosCase(start.cx, start.cy);
-		if(App.ME.currentSavedGame!=null){
-			//trace(App.ME.currentSavedGame);
-			var s=App.ME.currentSavedGame;
-			cx=s.data.playerPosition.x;
-			cy=s.data.playerPosition.y;
+		if (App.ME.currentSavedGame != null) {
+			// trace(App.ME.currentSavedGame);
+			var s = App.ME.currentSavedGame;
+			cx = s.data.playerPosition.x;
+			cy = s.data.playerPosition.y;
 			onPosManuallyChangedBoth();
 		}
 		// Misc inits
-		v.setFricts(0.905, 0.955);
+		v.setFricts(0.895, 0.925);
 		initLife(10);
 		hud.setLife(life, maxLife);
 		// Camera tracks this
 		camera.trackEntity(this, true);
-		camera.zoomTo(1.15);
+		camera.zoomTo(0.75);
 		camera.clampToLevelBounds = true;
 
 		// Init controller
 		ca = App.ME.controller.createAccess();
-		ca.lockCondition = Game.isGameControllerLocked;
+		// ca2 = App.ME.controller2.createAccess();
 
+		ca.lockCondition = Game.isGameControllerLocked;
+		// ca2.lockCondition = Game.isGameControllerLocked;
 		// Placeholder display
 		/*var b = new h2d.Bitmap(h2d.Tile.fromColor(Green, iwid, ihei), spr);
 			b.tile.setCenterRatio(0.5, 1); */
 
 		var anims = dn.heaps.assets.Aseprite.getDict(hxd.Res.atlas.hero);
 		spr.set(Assets.hero);
-		spr.setPivotCoord(wid*0.5,25);
+		spr.setPivotCoord(wid * 0.5, 25);
 		spr.anim.registerStateAnim(anims.jump, 6, () -> !cd.has("recentlyOnGround") && !cd.has('recentlyOnElevator'));
 		spr.anim.registerStateAnim(anims.fall, 7, () -> !cd.has("recentlyOnGround") && v.dy > 0);
 		spr.anim.registerStateAnim(anims.idle, 0, () -> cd.has('recentlyOnGround') && v.dx == 0);
 		spr.anim.registerStateAnim(anims.run, 2, () -> cd.has("recentMove"));
-		spr.anim.registerStateAnim(anims.roll, 4,1+M.fabs(v.dx), () -> !cd.has('recentlyOnElevator') && cd.has('recentlyOnGround') && !cd.has("recentMove") && (v.dy > 0 || cd.has('isPressingDown')));
+		spr.anim.registerStateAnim(anims.roll, 4, 1 + M.fabs(v.dx),
+			() -> !cd.has('recentlyOnElevator') && cd.has('recentlyOnGround') && !cd.has("recentMove") && (v.dy > 0 || cd.has('isPressingDown')));
 		spr.anim.registerStateAnim(anims.roll, 8, () -> cd.has('dashing'));
 		spr.anim.registerStateAnim(anims.speedrun, 3, () -> cd.has("recentMove") && M.fabs(v.dx) > 0.35);
 		outline.color = 0x000000;
-		
-		//spr.colorize(Col.inlineHex('0xaaaaff'), 1);
+
+		// spr.colorize(Col.inlineHex('0xaaaaff'), 1);
 		// game.player=this;
 	}
 
@@ -111,44 +119,44 @@ class SamplePlayer extends Entity {
 	override function onPreStepX() {
 		super.onPreStepX();
 		// cd.setMs('recentlyOnSlope', 0);
-		if(level.hasCollision(cx+dir,cy) && !level.hasCollision(cx+dir,cy-1) && yr<0.5){
-			yr=1;
+		if (level.hasCollision(cx + dir, cy) && !level.hasCollision(cx + dir, cy - 1) && yr < 0.5) {
+			yr = 1;
 			cy--;
 		}
 		// Right collision
 		if (xr > 0.8 && level.hasCollision(cx + 1, cy)) {
-			if (!level.isLUSlope(cx, cy) && !level.isLUSlope2(cx,cy)) {
+			if (!level.isLUSlope(cx, cy) && !level.isLUSlope2(cx, cy)) {
 				xr = 0.8;
 				vBump.dx = 0;
 			}
 
-			if (level.hasCollision(cx + 1, cy-1)) {
+			if (level.hasCollision(cx + 1, cy - 1)) {
 				xr = 0.8;
 				if (!cd.has('recentlyOnGround') && ca.isDown(MoveRight) && ca.isDown(Jump) && !cd.has('wallJump')) {
 					cd.setMs('wallJump', 250);
 					fx.wallDust(attachX, attachY, dir, 0xffffff);
 					v.dx = -0.62;
 					v.dy = -0.543;
-					cd.setS('startJumping', 0.33+jumpTime*0.001);
+					cd.setS('startJumping', 0.33 + jumpTime * 0.001);
 				}
 			}
 		}
 
 		// Left collision
 		if (xr < 0.2 && level.hasCollision(cx - 1, cy)) {
-			if (!level.isRUSlope(cx, cy) && !level.isRUSlope2(cx,cy)) {
+			if (!level.isRUSlope(cx, cy) && !level.isRUSlope2(cx, cy)) {
 				xr = 0.2;
 				vBump.dx = 0;
 			}
 
-			if (level.hasCollision(cx - 1, cy-1)) {
+			if (level.hasCollision(cx - 1, cy - 1)) {
 				xr = 0.2;
 				if (!cd.has('recentlyOnGround') && ca.isDown(MoveLeft) && ca.isDown(Jump) && !cd.has('wallJump')) {
 					cd.setMs('wallJump', 250);
 					fx.wallDust(attachX, attachY, dir, 0xffffff);
 					v.dx = 0.62;
 					v.dy = -0.543;
-					cd.setS('startJumping', 0.33+jumpTime*0.001);
+					cd.setS('startJumping', 0.33 + jumpTime * 0.001);
 				}
 			}
 		}
@@ -168,33 +176,32 @@ class SamplePlayer extends Entity {
 		}
 
 		// slope LU2
-		if (yr > 1 - xr/2 && level.isLUSlope2(cx, cy)) {
-			yr = 1 - xr/2;
+		if (yr > 1 - xr / 2 && level.isLUSlope2(cx, cy)) {
+			yr = 1 - xr / 2;
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
 		}
 		// slope RU2
-		if (yr >= xr/2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx+1, cy)) {
-			yr = xr/2;
+		if (yr >= xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx + 1, cy)) {
+			yr = xr / 2;
 			cd.setS("recentlyOnGround", 0.1);
-		}else if(yr >= 0.5+xr/2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx-1, cy)){
-			yr = 0.5+xr/2;
+		} else if (yr >= 0.5 + xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx - 1, cy)) {
+			yr = 0.5 + xr / 2;
 			cd.setS("recentlyOnGround", 0.1);
 		}
-
 	}
 
 	/** Y collisions **/
 	override function onPreStepY() {
 		super.onPreStepY();
-		if(cd.has('recentlyOnGround') && level.hasCollision(cx+dir,cy) && !level.hasCollision(cx+dir,cy-1) && yr<=0.3){
-			yr=0;
+		if (cd.has('recentlyOnGround') && level.hasCollision(cx + dir, cy) && !level.hasCollision(cx + dir, cy - 1) && yr <= 0.3) {
+			yr = 0;
 		}
 		// Slope LU
 		if (yr >= 1 - xr && level.isLUSlope(cx, cy)) {
 			v.dx -= v.dy * 0.015;
-			vBump.dx -= 0.00185*0.5;
-			vBump.dy += 0.00185*0.25;
+			vBump.dx -= 0.00185 * 0.5;
+			vBump.dy += 0.00185 * 0.25;
 			yr = 1 - xr;
 			// v.dy=0;
 			// onPosManuallyChangedY();
@@ -202,19 +209,19 @@ class SamplePlayer extends Entity {
 		}
 
 		// Slope LU2
-		if (yr >= 1 - xr/2 && level.isLUSlope2(cx, cy) && level.isLUSlope2(cx+1, cy)) {
+		if (yr >= 1 - xr / 2 && level.isLUSlope2(cx, cy) && level.isLUSlope2(cx + 1, cy)) {
 			v.dx -= v.dy * 0.015;
 			vBump.dx -= 0.00185;
 			vBump.dy += 0.00185;
-			yr = 1 - xr/2;
+			yr = 1 - xr / 2;
 			// v.dy=0;
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
-		}else if(yr >= 0.5 - xr/2 && level.isLUSlope2(cx, cy) && level.isLUSlope2(cx-1, cy)){
+		} else if (yr >= 0.5 - xr / 2 && level.isLUSlope2(cx, cy) && level.isLUSlope2(cx - 1, cy)) {
 			v.dx -= v.dy * 0.015;
 			vBump.dx -= 0.00185;
 			vBump.dy += 0.00185;
-			yr = 0.5 - xr/2;
+			yr = 0.5 - xr / 2;
 			// v.dy=0;
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
@@ -223,8 +230,8 @@ class SamplePlayer extends Entity {
 		// Slope RU
 		if (yr >= xr && level.isRUSlope(cx, cy)) {
 			v.dx += v.dy * 0.015;
-			vBump.dx += 0.00185*0.5;
-			vBump.dy += 0.00185*0.25;
+			vBump.dx += 0.00185 * 0.5;
+			vBump.dy += 0.00185 * 0.25;
 			yr = xr;
 			// v.dy=0;
 			// onPosManuallyChangedY();
@@ -232,19 +239,19 @@ class SamplePlayer extends Entity {
 		}
 
 		// Slope RU2
-		if (yr >= xr/2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx+1, cy)) {
+		if (yr >= xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx + 1, cy)) {
 			v.dx += v.dy * 0.015;
 			vBump.dx += 0.00185;
 			vBump.dy += 0.00185;
-			yr = xr/2;
+			yr = xr / 2;
 			// v.dy=0;
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
-		}else if(yr >= 0.5+xr/2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx-1, cy)){
+		} else if (yr >= 0.5 + xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx - 1, cy)) {
 			v.dx += v.dy * 0.015;
 			vBump.dx += 0.00185;
 			vBump.dy += 0.00185;
-			yr = 0.5+xr/2;
+			yr = 0.5 + xr / 2;
 			// v.dy=0;
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
@@ -294,35 +301,35 @@ class SamplePlayer extends Entity {
 		Control inputs are checked at the beginning of the frame.
 		VERY IMPORTANT NOTE: because game physics only occur during the `fixedUpdate` (at a constant 30 FPS), no physics increment should ever happen here! What this means is that you can SET a physics value (eg. see the Jump below), but not make any calculation that happens over multiple frames (eg. increment X speed when walking).
 	**/
-
-	public function doDash(){
+	public function doDash() {
 		cd.setMs('dashing', 500);
-		v.dx = gamePadDir*dashSpeed;//dir * 0.85;
+		v.dx = gamePadDir * dashSpeed; // dir * 0.85;
 	}
-	public function doLazer(){
-		var d:Float = 0.0;
-			for (i in 0...30) {
-				// needs angle int 
-				var tx=Std.int(i*Math.cos(lazerAngle));
-				var ty=Std.int(i*Math.sin(lazerAngle));
-				if (level.hasCollision(cx + tx, cy+ty)) {
-					d = distCase(cx +tx, cy+ty);
-					
-					if (level.breakables.has(Breaks, cx +tx, cy+ty)) {
-						level.breakables.remove(Breaks, cx +tx, cy+ty);
-						level.breakables.set(Breaking, cx +tx, cy+ty);
-					}else if(level.breakables.has(Breaking, cx +tx, cy+ty)){
-						level.breakables.remove(Breaking, cx +tx, cy+ty);
-						level.breakables.set(Broken, cx +tx, cy+ty);
-					}
-					
 
-					break;
+	public function doLazer() {
+		var d:Float = 0.0;
+		for (i in 0...30) {
+			// needs angle int
+			var tx = Std.int(i * Math.cos(lazerAngle));
+			var ty = Std.int(i * Math.sin(lazerAngle));
+			if (level.hasCollision(cx + tx, cy + ty)) {
+				d = distCase(cx + tx, cy + ty);
+
+				if (level.breakables.has(Breaks, cx + tx, cy + ty)) {
+					level.breakables.remove(Breaks, cx + tx, cy + ty);
+					level.breakables.set(Breaking, cx + tx, cy + ty);
+				} else if (level.breakables.has(Breaking, cx + tx, cy + ty)) {
+					level.breakables.remove(Breaking, cx + tx, cy + ty);
+					level.breakables.set(Broken, cx + tx, cy + ty);
 				}
+
+				break;
 			}
-			fx.lazer(centerX, centerY, dir, d * Const.GRID, 0.04,0xff0000,lazerAngle);
+		}
+		fx.lazer(centerX, centerY, dir, d * Const.GRID, 0.04, 0xff0000, lazerAngle);
 	}
-	public function doFire(){
+
+	public function doFire() {
 		cd.setMs('firing', 150);
 		new sample.Bullet(cx, cy - 1, dir, this);
 	}
@@ -332,7 +339,7 @@ class SamplePlayer extends Entity {
 
 		walkSpeed = 0;
 		jumpSpeed = 0;
-		jumpTime = (Std.int(xp)*0.1);
+		jumpTime = (Std.int(xp) * 0.01);
 		if (onGround) {
 			cd.setS("recentlyOnGround", 0.1); // allows "just-in-time" jumps
 		}
@@ -341,8 +348,8 @@ class SamplePlayer extends Entity {
 			cd.setS('isPressingDown', 0.1);
 		}
 
-		if(cd.has("doLazerTuto")){
-			lazerAngle+=0.2;
+		if (cd.has("doLazerTuto")) {
+			lazerAngle += 0.2;
 			doLazer();
 		}
 
@@ -352,15 +359,20 @@ class SamplePlayer extends Entity {
 			cd.setS('burn', rnd(0.01, 0.03));
 		}
 
+		/*if(ca2.isPressed(Jump)){
+			//v.dy=-1;
+			trace("CONTROLLER N°2 PRESSED JUMP");
+		}*/
 		// Jump
 		if (cd.has("recentlyOnGround") && ca.isPressed(Jump)) {
-			if(cd.has("recentlyOnElevator")) v.dy=0;
+			if (cd.has("recentlyOnElevator"))
+				v.dy = 0;
 			v.dy = -0.34;
 			vBump.dy = 0;
 			jumpSpeed = 0.24;
 			setSquashX(0.9);
 			cd.unset("recentlyOnGround");
-			cd.setS("startJumping", 0.33+jumpTime*0.08);
+			cd.setS("startJumping", 0.33 + jumpTime * 0.08);
 			// fx.dotsExplosionExample(centerX, centerY, 0xffcc00);
 			fx.fallDust(centerX, attachY, getMoveAng(), dir);
 			ca.rumble(0.05, 0.06);
@@ -369,7 +381,7 @@ class SamplePlayer extends Entity {
 		if (cd.has("startJumping")) {
 			if (ca.isDown(Jump)) {
 				// v.dy - = cd ...
-				jumpSpeed = cd.getRatio("startJumping") * 0.1143;
+				jumpSpeed = cd.getRatio("startJumping") * 0.1345;
 			} else {
 				cd.unset("startJumping");
 				jumpSpeed = 0;
@@ -382,22 +394,23 @@ class SamplePlayer extends Entity {
 		}
 		if (cd.has('dashing')) {
 			fx.dash(centerX, centerY, v.dx, getMoveAng());
-			fx.powerCircle(centerX,centerY,0.01,this);
+			fx.powerCircle(centerX, centerY, 0.01, this);
 		}
-		
+
 		// Walk
 		if (ca.getAnalogDist2(MoveLeft, MoveRight) > 0) {
 			// As mentioned above, we don't touch physics values (eg. `dx`) here. We just store some "requested walk speed", which will be applied to actual physics in fixedUpdate.
 			walkSpeed = ca.getAnalogValue2(MoveLeft, MoveRight); // -1 to 1
-			gamePadDir=walkSpeed<0?-1:1;
-			lazerAngle=ca.getAnalogAngle4(MoveLeft,MoveRight,MoveUp,MoveDown);
+			gamePadDir = walkSpeed < 0 ? -1 : 1;
+			lazerAngle = ca.getAnalogAngle4(MoveLeft, MoveRight, MoveUp, MoveDown);
 			cd.setMs('recentMove', 10);
 		}
-		if(ca.isDown(Lock)){// & onGround
+		if (ca.isDown(Lock)) { // & onGround
 			walkSpeed = 0;
-			if(onGround) v.dy=0;
+			if (onGround)
+				v.dy = 0;
 		}
-		
+
 		// fire
 		if (ca.isDown(Fire) && !cd.has('firing')) {
 			cd.setMs('firing', 150);
@@ -409,18 +422,19 @@ class SamplePlayer extends Entity {
 		if (ca.isDown(Lazer)) {
 			doLazer();
 		}
-
 	}
 
 	override function onDamage(dmg:Int, from:Null<Entity>) {
-		cd.setS('glitch',0.5);
-		fx.cat(camera.centerX,camera.centerY,0.8,0xFF0000);// App.ME.w() taille de tout le level
+		cd.setS('glitch', 0.5);
+		fx.cat(camera.centerX, camera.centerY, 0.8, 0xFF0000); // App.ME.w() taille de tout le level
 		super.onDamage(dmg, from);
 		game.hud.setLife(life, maxLife);
 	}
-	public function updateHudLife(){
+
+	public function updateHudLife() {
 		game.hud.setLife(life, maxLife);
 	}
+
 	override function onDie() {
 		//
 		// ensure all garbage collection is done
@@ -449,57 +463,59 @@ class SamplePlayer extends Entity {
 
 	override function fixedUpdate() {
 		super.fixedUpdate();
-		
-		if(level.hasCheckPoint(cx,cy) && !cd.has('saving')){
-			cd.setS('saving',3);
-			//trace('saving game...');
+		if (game.camera.target == null) {
+			game.camera.trackEntity(this, true, 1.0);
+		}
+		if (level.hasCheckPoint(cx, cy) && !cd.has('saving')) {
+			cd.setS('saving', 5);
+			// trace('saving game...');
 			game.hud.notify('saving...');
 			game.saveGame();
-			//game.pause();
+			// game.pause();
 		}
-		if(level.hasJumper(cx,cy) && !cd.has('jumper')){
-			//trace('jumper');
-			cd.setMs('jumper',100);
-			v.dy-=1.7;
+		if (level.hasJumper(cx, cy) && !cd.has('jumper')) {
+			// trace('jumper');
+			cd.setMs('jumper', 100);
+			v.dy -= 1.7;
 		}
-		if(level.hasIce(cx,cy+1) && !cd.has('ice')){
-			//trace('ICE !');
-			cd.setMs('ice',16);
-			v.dx*=1.056;
-			fx.cloud(spr.x,spr.y+rnd(-16,16),0,dir);
+		if (level.hasIce(cx, cy + 1) && !cd.has('ice')) {
+			// trace('ICE !');
+			cd.setMs('ice', 16);
+			v.dx *= 1.056;
+			fx.cloud(spr.x, spr.y + rnd(-16, 16), 0, dir);
 		}
-		
+
 		/*if(cd.has('glitch')){
-			App.ME.simpleShader.shader.multiplier = Math.sin(cd.getRatio('glitch'))*20;
-		}else{
-			App.ME.simpleShader.shader.multiplier = 0.4;
-		}
-		// camera zoom
-		if (!camera.isOnScreen(centerX, centerY, -8)) {
-			// trace('hey reviens léon');
-			camera.zoomTo(camera.zoom * 0.9);
-		} else if (!camera.isOnScreen(centerX, centerY, 512)) {
-			camera.zoomTo(camera.zoom * 1.1);
-		} else {
-			camera.zoomTo(1.2);
+				App.ME.simpleShader.shader.multiplier = Math.sin(cd.getRatio('glitch'))*20;
+			}else{
+				App.ME.simpleShader.shader.multiplier = 0.4;
+			}
+			// camera zoom
+			if (!camera.isOnScreen(centerX, centerY, -8)) {
+				// trace('hey reviens léon');
+				camera.zoomTo(camera.zoom * 0.9);
+			} else if (!camera.isOnScreen(centerX, centerY, 512)) {
+				camera.zoomTo(camera.zoom * 1.1);
+			} else {
+				camera.zoomTo(1.2);
 		}*/
 
 		// jumps
 
 		v.dy -= jumpSpeed;
 		#if (hl && debug)
-		//if (isAlive())
-			//debug(pretty(lazerAngle, 2), 0x00ff00);
+		// if (isAlive())
+		// debug(pretty(lazerAngle, 2), 0x00ff00);
 		#end
 		// Gravity
 		if (!onGround && !cd.has('recentlyOnElevator')) {
-			v.dy += 0.044;
+			v.dy += 0.074;
 		}
 		/*else{
 			v.dx*=0.9;
 		}*/
-		if (dyTotal > 0.8) {
-			v.dy = 0.8;
+		if (dyTotal > 1.28) {
+			v.dy = 1.28;
 			vBump.dy = 0.0;
 		}
 		// Apply requested walk movement
@@ -510,44 +526,50 @@ class SamplePlayer extends Entity {
 		dir = v.dx >= 0 ? 1 : -1;
 		if (v.dx != 0) {
 			lastDir = dir;
-			//debug(M.fabs(v.dx));
+			// debug(M.fabs(v.dx));
 			if (cd.has('recentlyOnGround') && M.fabs(v.dx) > 0.4)
 				fx.flame(centerX, centerY);
-				//fx.heat(centerX, centerY);
+			// fx.heat(centerX, centerY);
 		} else {
 			dir = lastDir;
 		}
 
-		if(spr.anim.getAnimId()=="roll"){
-			spr.anim.setSpeed(M.fabs(v.dx)*8);
+		if (spr.anim.getAnimId() == "roll") {
+			spr.anim.setSpeed(M.fabs(v.dx) * 8);
 		}
-		if(cd.has('recentlyOnElevator')){
-			if(parented!=null){
-				spr.y=parented.spr.y;
+	}
+
+	override function frameUpdate() {
+		super.frameUpdate();
+
+		if (cd.has('recentlyOnElevator')) {
+			if (cd.has('startJumping')) {
+				cd.unset('recentlyOnElevator');
+				parented = null;
+			}
+			if (parented != null) {
+				setPosPixel(attachX, parented.top);
+				v.dy = 0;
 				onPosManuallyChangedY();
 			}
-		}else{
-			parented=null;
+		} else {
+			parented = null;
 		}
-		
-	}
-	override function frameUpdate(){
-		super.frameUpdate();
 		// time bonus
 		if (!cd.has('countDown')) {
 			cd.setS('countDown', 1);
 			hud.setTimeS(timeBonus);
 			hud.invalidate();
 			timeBonus++;
-			if (timeBonus >= Const.CYCLE_S) {//+game.gameTimeS
-				if(!cd.has('hitBump')) {
+			if (timeBonus >= Const.CYCLE_S * 100) { // +game.gameTimeS
+				if (!cd.has('hitBump')) {
 					cd.setS('hitBump', 1.2);
 					S.ouch04(App.ME.options.volume);
 					fx.flashBangEaseInS(Red, 0.4, 1);
-					hit(1,null);
+					hit(1, null);
 				}
-				timeBonus=0;
-				game.gameTimeS=0;
+				timeBonus = 0;
+				game.gameTimeS = 0;
 			}
 		}
 	}

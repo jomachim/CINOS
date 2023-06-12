@@ -9,7 +9,7 @@ class Camera extends GameChildProcess {
 	/** This is equal to rawFocus if `clampToLevelBounds` is disabled **/
 	var clampedFocus : LPoint;
 
-	var target : Null<Entity>;
+	public var target : Null<Entity>;
 	public var targetOffX = 0.;
 	public var targetOffY = 0.;
 

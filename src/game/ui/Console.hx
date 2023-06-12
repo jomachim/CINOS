@@ -203,7 +203,7 @@ class Console extends h2d.Console {
 
 	public function error(msg:Dynamic) {
 		log("[ERROR] "+Std.string(msg), errorColor);
-		h2d.Console.HIDE_LOG_TIMEOUT = Const.INFINITE;
+		h2d.Console.HIDE_LOG_TIMEOUT = Const.INFINITY;
 	}
 
 	#if debug
