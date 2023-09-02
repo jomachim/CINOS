@@ -2,7 +2,7 @@ import h2d.filter.Nothing;
 import h2d.filter.Group;
 
 class Entity {
-	public static var ALL:FixedArray<Entity> = new FixedArray(1024);
+	public static var ALL:FixedArray<Entity> = new FixedArray(2048);
 	public static var GC:FixedArray<Entity> = new FixedArray(ALL.maxSize);
 
 	// Various getters to access all important stuff easily
@@ -405,7 +405,7 @@ class Entity {
 	function onDamage(dmg:Int, from:Null<Entity>) {
 		if (from == null)
 			from = this;
-		bump(-dirTo(from) * 0.5, -0.2);
+		bump(-dirTo(from) * 0.05, -0.05);
 		cd.setS('hitBump', 0.5);
 	}
 
@@ -439,6 +439,17 @@ class Entity {
 		yr = (y - cy * Const.GRID) / Const.GRID;
 		onPosManuallyChangedBoth();
 	}
+
+	public function setPosX(x:Float){
+		cx = Std.int(x / Const.GRID);
+		xr = (x - cx * Const.GRID) / Const.GRID;
+		onPosManuallyChangedX();
+	};
+	public function setPosY(y:Float){
+		cy = Std.int(y / Const.GRID);
+		yr = (y - cy * Const.GRID) / Const.GRID;
+		onPosManuallyChangedY();
+	};
 
 	/** Should be called when you manually (ie. ignoring physics) modify both X & Y entity coordinates **/
 	function onPosManuallyChangedBoth() {

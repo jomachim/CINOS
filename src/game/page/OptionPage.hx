@@ -9,7 +9,6 @@ import dn.Process;
 import h2d.Text;
 import page.MenuItem;
 
-
 class OptionPage extends dn.Process {
 	public static var ME:OptionPage;
 
@@ -30,14 +29,14 @@ class OptionPage extends dn.Process {
 	var bouton:MenuItem;
 	var boutShad:MenuItem;
 	var rect:h2d.Graphics;
-	var menuIndex:Int=0;
-	var options:Array<MenuItem>=[];
+	var menuIndex:Int = 0;
+	var options:Array<MenuItem> = [];
 	var ready:Bool;
 
 	public function new(parent:Process) {
 		super(parent);
 		ME = this;
-		ready=false;
+		ready = false;
 		createRootInLayers(parent.root, Const.DP_UI);
 		racine = new Layers(root);
 
@@ -59,8 +58,8 @@ class OptionPage extends dn.Process {
 		rect.drawRect(0, 0, w(), h());
 		racine.under(rect);
 		rect.x = -w();
-		tw.createS(rect.x, 0, 0.5).end(()->{
-			ready=true;
+		tw.createS(rect.x, 0, 0.5).end(() -> {
+			ready = true;
 		});
 
 		bouton = new MenuItem(200, 24, rect);
@@ -72,17 +71,21 @@ class OptionPage extends dn.Process {
 		tx.text = App.ME.options.volume == 0 ? Std.string("VOLUME ON") : Std.string("VOLUME OFF");
 		bouton.x = w() * 0.5 - 100;
 		bouton.y = h() * 0.5 - 100;
-		var cb=()->{
+		var cb = () -> {
 			App.ME.options.volume = App.ME.options.volume == 0 ? 1 : 0;
-			App.ME.options.volume == 0 ? TitleScreen.ME.zik.stopWithFadeOut(1) : TitleScreen.ME.zik.playFadeIn(true, App.ME.options.volume, 1);
+			if (Game.exists()) {
+				App.ME.options.volume == 0 ? Game.ME.muz.stopWithFadeOut(1) : Game.ME.muz.playFadeIn(true, App.ME.options.volume*0.25, 1);
+			} else if (TitleScreen.exists()) {
+				App.ME.options.volume == 0 ? TitleScreen.ME.zik.stopWithFadeOut(1) : TitleScreen.ME.zik.playFadeIn(true, App.ME.options.volume*0.25, 1);
+			}
 			tx.text = App.ME.options.volume == 0 ? Std.string("VOLUME ON") : Std.string("VOLUME OFF");
-			//TitleScreen.ME.ca.unlock();
-			//destroy();
+			// TitleScreen.ME.ca.unlock();
+			// destroy();
 		}
 		bouton.onRelease = (e) -> {
 			cb();
 		}
-		bouton.callBack=cb;
+		bouton.callBack = cb;
 		bouton.onOver = (e) -> {
 			cd.setS('select', 0.5);
 			bouton.filter = TitleScreen.ME.glow;
@@ -92,15 +95,11 @@ class OptionPage extends dn.Process {
 		}
 		bouton.onOut = (e) -> {
 			cd.setS('select', 0.5);
-			//boutShad.filter =null;
-			//menuIndex = -1;
+			// boutShad.filter =null;
+			// menuIndex = -1;
 			tw.createMs(bouton.getChildAt(0).scaleX, 2, TLinear, 200);
 			tw.createMs(bouton.getChildAt(0).scaleY, 2, TBackOut, 200);
 		}
-
-
-
-
 
 		boutShad = new MenuItem(200, 24, rect);
 		options.push(boutShad);
@@ -111,13 +110,15 @@ class OptionPage extends dn.Process {
 		txs.text = App.ME.options.shaders == false ? Std.string("SHADERS ON") : Std.string("SHADERS OFF");
 		boutShad.x = w() * 0.5 - 100;
 		boutShad.y = h() * 0.5 - 100 + 28;
-		var cb=()->{
+		var cb = () -> {
 			App.ME.options.shaders = App.ME.options.shaders == false ? true : false;
 			txs.text = App.ME.options.shaders == false ? Std.string("SHADERS ON") : Std.string("SHADERS OFF");
-			//TitleScreen.ME.ca.unlock();
-			//destroy();
+			// TitleScreen.ME.ca.unlock();
+			// destroy();
 		}
-		boutShad.onRelease = (e)->{cb();};
+		boutShad.onRelease = (e) -> {
+			cb();
+		};
 		boutShad.callBack = cb;
 		boutShad.onOver = (e) -> {
 			cd.setS('select', 0.5);
@@ -128,8 +129,8 @@ class OptionPage extends dn.Process {
 		}
 		boutShad.onOut = (e) -> {
 			cd.setS('select', 0.5);
-			//boutShad.filter =null;
-			//menuIndex = -1;
+			// boutShad.filter =null;
+			// menuIndex = -1;
 			tw.createMs(boutShad.getChildAt(0).scaleX, 2, TLinear, 200);
 			tw.createMs(boutShad.getChildAt(0).scaleY, 2, TBackOut, 200);
 		}
@@ -137,13 +138,22 @@ class OptionPage extends dn.Process {
 
 	override function update() {
 		super.update();
-		if(!ready) return;
+		if (!ready)
+			return;
 		if (ca.isPressed(Pause) || ca.isPressed(Lazer)) {
 			TitleScreen.ME.ca.unlock();
+			if (Game.exists()) {
+				Game.ME.ca.unlock();
+				Game.ME.resume();
+			}
 			destroy();
 		}
 		if (ca.isKeyboardPressed(K.ESCAPE)) {
 			TitleScreen.ME.ca.unlock();
+			if (Game.exists()) {
+				Game.ME.ca.unlock();
+				Game.ME.resume();
+			}
 			destroy();
 		}
 		if (ca.isDown(MoveDown) && !cd.has('select')) {
@@ -160,7 +170,7 @@ class OptionPage extends dn.Process {
 				menuIndex = options.length - 1;
 			}
 		}
-		for(i in 0...options.length){
+		for (i in 0...options.length) {
 			if (i == menuIndex) {
 				options[i].filter = TitleScreen.ME.glow;
 				tw.createMs(options[i].getChildAt(0).scaleX, 2.5, TLinear, 200);
@@ -171,9 +181,11 @@ class OptionPage extends dn.Process {
 				tw.createMs(options[i].getChildAt(0).scaleY, 2, TBackOut, 200);
 			}
 		}
-		if (ca.isPressed(Jump) || ca.isPressed(Pause)) { 
-			if(options[menuIndex].callBack!=null){
-				options[menuIndex].callBack();
+		if (ca.isPressed(Jump) || ca.isPressed(Pause)) {
+			if (options[menuIndex] != null) {
+				if (options[menuIndex].callBack != null) {
+					options[menuIndex].callBack();
+				}
 			}
 		}
 	}

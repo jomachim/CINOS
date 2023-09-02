@@ -3,6 +3,7 @@ package sample;
 import dn.Delayer;
 import hxd.snd.openal.AudioTypes.BufferHandle;
 import sample.Mob;
+import sample.Bat;
 
 /**
 	SamplePlayer is an Entity with some extra functionalities:
@@ -22,6 +23,8 @@ class Bullet extends Entity {
 	public var emiter:Entity;
 
 	var mobs:Array<Mob> = [];
+	var bats:Array<Bat> = [];
+	var rats:Array<Rat> = [];
 	var bosses:Array<Boss> = [];
 
 	// public var collides:Bool = false;
@@ -52,11 +55,19 @@ class Bullet extends Entity {
 		for (i in 0...sample.Boss.ALL.length) {
 			bosses.push(sample.Boss.ALL[i]);
 		}
+		bats=[];
+		for(i in 0...sample.Bat.ALL.length){
+			bats.push(sample.Bat.ALL[i]);
+		}
+		rats=[];
+		for(i in 0...sample.Rat.ALL.length){
+			rats.push(sample.Rat.ALL[i]);
+		}
 		setPosPixel(entity.attachX, entity.attachY - 8);
 
 		// Misc inits
-		v.setFricts(0.9, 0.9);
-		walkSpeedX = M.fmax(0.4, entity.dxTotal);
+		v.setFricts(1, 0.9);
+		walkSpeedX = M.fmax(0.4, 0.4+M.fabs(entity.dxTotal)*1.5);
 		walkSpeedY = 0.;
 
 		// Placeholder display
@@ -196,6 +207,10 @@ class Bullet extends Entity {
 	**/
 	override function preUpdate() {
 		super.preUpdate();
+		if (App.ME.options.shaders == true) {
+			fx.heatSource(attachX, attachY);
+			fx.heat(attachX, attachY);
+		}
 	}
 
 	override function fixedUpdate() {
@@ -204,13 +219,27 @@ class Bullet extends Entity {
 			return;
 		v.dx = dir * walkSpeedX;
 		v.dy = dir * walkSpeedY;
-		if (App.ME.options.shaders == true) {
-			fx.heatSource(attachX, attachY);
-			fx.heat(attachX, attachY);
-		}
+		
 		if (rotation == true)
 			spr.rotate(v.dx * 1.5);
-
+		for(bat in bats){
+			if ((distPx(bat) < 16 || collides(bat)) && emiter != bat && emiter.is(SamplePlayer)) {
+				// Game.ME.delayer.addF(() -> {hxd.Timer.skip();}, 0);
+				// mob.blink(0xffffff);
+				bat.hit(1, emiter);
+				S.bat01().play(false,App.ME.options.volume).pitchRandomly(0.64);
+				fade();
+			}
+		}
+		for(rat in rats){
+			if ((distPx(rat) < 16 || collides(rat)) && emiter != rat && emiter.is(SamplePlayer)) {
+				// Game.ME.delayer.addF(() -> {hxd.Timer.skip();}, 0);
+				// mob.blink(0xffffff);
+				S.rat01().play(false,App.ME.options.volume).pitchRandomly(0.64);
+				rat.hit(1, emiter);
+				fade();
+			}
+		}
 		for (mob in mobs) {
 			if ((distPx(mob) < 16 || collides(mob)) && emiter != mob && emiter.is(SamplePlayer)) {
 				// Game.ME.delayer.addF(() -> {hxd.Timer.skip();}, 0);

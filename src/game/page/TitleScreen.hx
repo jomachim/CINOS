@@ -25,6 +25,7 @@ class TitleScreen extends AppChildProcess {
 	var logo:h2d.Bitmap;
 	var titleHead:h2d.Bitmap;
 	var cinos:h2d.Bitmap;
+	var nal:h2d.Bitmap;
 	var wallColors:h2d.Bitmap;
 	var wallNormals:h2d.Bitmap;
 	var wallGloss:h2d.Bitmap;
@@ -71,7 +72,8 @@ class TitleScreen extends AppChildProcess {
 	public var mcbs:Map<Int, Dynamic> = new Map();
 
 	var citations:Array<String> = [];
-
+	var pat:h2d.Tile;
+	var g:h2d.Graphics;
 	public static inline function exists() {
 		return ME != null && !ME.destroyed;
 	}
@@ -85,7 +87,13 @@ class TitleScreen extends AppChildProcess {
 		}
 
 		fadeIn();
-
+		pat=Assets.introPat.tile;
+		g=new h2d.Graphics(root);
+		g.tile=pat;
+		g.tileWrap=true;
+		g.beginTileFill(0,0,4,4,pat);
+		g.drawRect(0, 8, w(), h());
+		root.add(g, Const.DP_BG);
 		pool = new dn.heaps.HParticle.ParticlePool(Assets.tiles.tile, 2048, Const.FPS);
 		engine.backgroundColor = 0x000000;
 		cm = new dn.Cinematic(Const.FPS);
@@ -99,7 +107,11 @@ class TitleScreen extends AppChildProcess {
 		versionNumber.y = h() - 24;
 		root.add(versionNumber, Const.DP_UI);
 		bgCol = new h2d.Bitmap(h2d.Tile.fromColor(Col.inlineHex('0xEA9502'))); // hxd.Res.atlas.title.bg.toTile());
+		bgCol.alpha=0.5;
 		root.add(bgCol, Const.DP_MAIN);
+		cd.setS('introCountDown',59);
+
+		
 
 		// wallNormals = new Bitmap(hxd.Res.atlas.wallNormal.toTile());
 		// wallNormals.blendMode=Add;
@@ -138,6 +150,10 @@ class TitleScreen extends AppChildProcess {
 		cinos = new h2d.Bitmap(Assets.tiles.getTile(D.tiles.cinos));
 		cinos.tile.setCenterRatio();
 		root.add(cinos, Const.DP_MAIN);
+
+		nal = new h2d.Bitmap(hxd.Res.atlas.nal10ansedition.toTile());
+		nal.tile.setCenterRatio(0,0);
+		root.add(nal, Const.DP_MAIN);
 
 		fxNormal = new h2d.SpriteBatch(Assets.tiles.tile);
 		root.add(fxNormal, Const.DP_FX_FRONT);
@@ -304,6 +320,7 @@ class TitleScreen extends AppChildProcess {
 							fadeOut(1, () -> {
 								destroy();
 								root.removeChildren();
+								App.ME.currentSavedGame=null;
 								App.ME.startTitleScreen();
 							});
 						});
@@ -352,6 +369,10 @@ class TitleScreen extends AppChildProcess {
 		super.preUpdate();
 		cm.update(tmod);
 		pool.update(tmod);
+		pat.scrollDiscrete(1,1);
+		g.clear();
+		g.beginTileFill(0,0,8,8,pat);
+		g.drawRect(0, 0, w(), h());
 	}
 
 	override function onResize() {
@@ -375,6 +396,7 @@ class TitleScreen extends AppChildProcess {
 		// logo.setScale(upscale);
 		titleHead.setScale(upscale);
 		cinos.setScale(upscale);
+		nal.setScale(upscale*0.5);
 		fxAdd.setScale(upscale);
 		fxNormal.setScale(upscale);
 		fxAddMultiply.setScale(upscale);
@@ -390,6 +412,7 @@ class TitleScreen extends AppChildProcess {
 		// logo.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
 		titleHead.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.25));
 		cinos.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.65));
+		nal.setPosition(Std.int(w() * 0.05), Std.int(h() * 0.05));
 	}
 
 	inline function allocAdd(id:String, x:Float, y:Float):HParticle {
@@ -422,7 +445,12 @@ class TitleScreen extends AppChildProcess {
 			cinos.scaleX = 1 + 2*Math.sin(ftime / 1000) * r;
 			cinos.scaleY = cinos.scaleX;
 		}
-
+		if(ready && !cd.has('introCountDown')){
+			cd.setS('introCountDown',20);
+			ca.lock();
+			ME.pause();
+			var introScene=new page.IntroPage(App.ME);
+		}
 		if (ready && !cd.hasSetS("fx", 0.03)) {
 			var w = w() / upscale;
 			var h = h() / upscale;
@@ -467,8 +495,8 @@ class TitleScreen extends AppChildProcess {
 				p.frict = R.aroundBO(0.98, 5);
 				p.lifeS = rnd(1, 2);
 			}
-			if (rnd(0, 100) < 15) {
-				var r = irnd(1, 16);
+			if (rnd(0, 1000) < 15) {
+				var r =1;// irnd(1, 16);
 				for (i in 0...r) {
 					var p = allocAddMultiply(D.tiles.fxFlare, w * 0.5, h * 0.5 + rnd(-1, 1) * i * 1000 * Math.sin(i / 180 * 3.1415));
 					// p.rotation=rnd(0,180)*180/3.1415;
@@ -585,7 +613,7 @@ class TitleScreen extends AppChildProcess {
 			}*/
 			if (menuOptions[menuIndex].cb != null) {
 				menuOptions[menuIndex].cb();
-				// ca.lock();
+				ca.lock();
 			}
 			// skip();
 		}

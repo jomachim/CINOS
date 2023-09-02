@@ -10,11 +10,13 @@ class Fx extends GameChildProcess {
 	public var main_add:h2d.SpriteBatch;
 	public var main_normal:h2d.SpriteBatch;
 	public var displacer_normal:h2d.SpriteBatch;
+	public var front_normal:h2d.SpriteBatch;
+	public var front_add:h2d.SpriteBatch;
 
 	public function new() {
 		super();
 
-		pool = new ParticlePool(Assets.tiles.tile, 4192, Const.FPS);
+		pool = new ParticlePool(Assets.tiles.tile, 8192, Const.FPS);
 
 		bg_add = new h2d.SpriteBatch(Assets.tiles.tile);
 		game.scroller.add(bg_add, Const.DP_FX_BG);
@@ -33,12 +35,23 @@ class Fx extends GameChildProcess {
 		game.scroller.add(main_add, Const.DP_FX_FRONT);
 		main_add.blendMode = Add;
 		main_add.hasRotationScale = true;
+		/* EXTRA LAYER */
+
+		front_add = new h2d.SpriteBatch(Assets.tiles.tile);
+		game.scroller.add(front_add, Const.DP_FX_FRONT);
+		front_add.blendMode = Add;
+		front_add.hasRotationScale = true;
+
+		front_normal = new h2d.SpriteBatch(Assets.tiles.tile);
+		game.scroller.add(front_normal, Const.DP_FX_FRONT);
+		// front_normal.blendMode = Normal;
+		front_normal.hasRotationScale = true;
 
 		// displacement layer ?
 		displacer_normal = new h2d.SpriteBatch(Assets.tiles.tile);
 		// game.scroller.add(displacer_normal, Const.DP_FX_FRONT);
 		game.displaceLayer.add(displacer_normal, Const.DP_FX_BG);
-		//displacer_normal.blendMode = Add;
+		// displacer_normal.blendMode = Add;
 		displacer_normal.hasRotationScale = true;
 	}
 
@@ -51,6 +64,8 @@ class Fx extends GameChildProcess {
 		main_add.remove();
 		main_normal.remove();
 		displacer_normal.remove();
+		front_add.remove();
+		front_normal.remove();
 	}
 
 	/** Clear all particles **/
@@ -73,6 +88,14 @@ class Fx extends GameChildProcess {
 	/** Create a HParticle instance in the MAIN layer, using NORMAL blendmode **/
 	public inline function allocMain_normal(id, x, y)
 		return pool.alloc(main_normal, Assets.tiles.getTileRandom(id), x, y);
+
+	/** Create a HParticle instance in the FORGROUND layer, using NORMAL blendmode **/
+	public inline function allocFront_normal(id, x, y)
+		return pool.alloc(front_normal, Assets.tiles.getTileRandom(id), x, y);
+
+	/** Create a HParticle instance in the FORGROUND layer, using ADD blendmode **/
+	public inline function allocFront_add(id, x, y)
+		return pool.alloc(front_add, Assets.tiles.getTileRandom(id), x, y);
 
 	/** Create a HParticle instance in the DISPLACEMENT layer, using NORMAL blendmode **/
 	public inline function allocDisplacer_normal(id, x, y)
@@ -112,14 +135,14 @@ class Fx extends GameChildProcess {
 	}
 
 	/* obsolete : texture.clear(0x8888ff,1) do the trick :) */
-	public inline function fillZeroNormal(x:Float=0.0,y:Float=0.0){
-		var p=pool.alloc(displacer_normal, Tile.fromColor(0x8888ff,w(),h(),1.0), x,y);
-		p.lifeS=0.1;
+	public inline function fillZeroNormal(x:Float = 0.0, y:Float = 0.0) {
+		var p = pool.alloc(displacer_normal, Tile.fromColor(0x8888ff, w(), h(), 1.0), x, y);
+		p.lifeS = 0.1;
 	}
 
-	public inline function pixelRain(x,y,w,h){
+	public inline function pixelRain(x, y, w, h) {
 		for (i in 0...2) {
-			var p = allocDisplacer_normal(D.tiles.pixel,x+ rnd(0, w * 0.8), y+rnd(0, h * 0.7));
+			var p = allocDisplacer_normal(D.tiles.pixel, x + rnd(0, w * 0.8), y + rnd(0, h * 0.7));
 			p.setFadeS(rnd(0.2, 0.5), 1, rnd(1, 2));
 			p.colorAnimS(Col.inlineHex("#ff6900"), Assets.dark(), rnd(1, 3));
 			p.alphaFlicker = rnd(0.2, 0.5);
@@ -131,49 +154,49 @@ class Fx extends GameChildProcess {
 			// p.dy = rnd(0,1,true);
 			p.frict = R.aroundBO(0.98, 5);
 			p.lifeS = rnd(1, 2);
-			p.onUpdate=function(p:HParticle){
-				heat(p.x,p.y,0.05,0.25,0.5);
+			p.onUpdate = function(p:HParticle) {
+				heat(p.x, p.y, 0.05, 0.25, 0.5);
 			}
 		}
 	}
 
-	public inline function portalDoor(x:Float,y:Float){
-		var p = allocBg_add(D.tiles.fxPortal, x , y );
-		p.rotation=rnd(0,3.14);
-		p.lifeS = rnd(0.1,1);
-		p.setFadeS(0.45,0.01,1);
+	public inline function portalDoor(x:Float, y:Float) {
+		var p = allocBg_add(D.tiles.fxPortal, x, y);
+		p.rotation = rnd(0, 3.14);
+		p.lifeS = rnd(0.1, 1);
+		p.setFadeS(0.45, 0.01, 1);
 		p.playAnimLoop(A.tiles, D.tiles.fxPortal, rnd(0.5, 1.5));
 	}
 
-	public inline function heatSource(x:Float, y:Float, v:Float=0.0,?s:Float = 0.1) {
+	public inline function heatSource(x:Float, y:Float, v:Float = 0.0, ?s:Float = 0.1) {
 		var p = allocDisplacer_normal(D.tiles.fxSphereNormal, x, y);
 		p.alpha = v;
-		p.setScale(v>0.5?0.5:0.5+v);
+		p.setScale(v > 0.5 ? 0.5 : 0.5 + v);
 		p.lifeS = s;
 	}
 
-	public inline function swirl(x:Float,y:Float,_alpha:Float=1.0,_scale:Float=1.0){
+	public inline function swirl(x:Float, y:Float, _alpha:Float = 1.0, _scale:Float = 1.0) {
 		var p = allocDisplacer_normal(D.tiles.swirl, x, y);
-		p.rotation=rnd(0.01,3.14);
-		p.setFadeS(1,0.2,0.2);
-		p.scaleMul=0.99;
-		p.alpha=_alpha*0.5;
-		p.scale=_scale;
-		//p.gx=rnd(-0.001,0.001);
-		//p.gy=rnd(-0.01,-0.05);
-		p.lifeS = rnd(0.1,0.5);
+		p.rotation = rnd(0.01, 3.14);
+		p.setFadeS(1, 0.2, 0.2);
+		p.scaleMul = 0.99;
+		p.alpha = _alpha * 0.5;
+		p.scale = _scale;
+		// p.gx=rnd(-0.001,0.001);
+		// p.gy=rnd(-0.01,-0.05);
+		p.lifeS = rnd(0.1, 0.5);
 	}
 
-	public inline function heat(x:Float, y:Float, ?s:Float = 0.5,?_scale:Float=1.0,_alpha:Float=1.0,?color:Col = 0xff8c00) {
+	public inline function heat(x:Float, y:Float, ?s:Float = 0.5, ?_scale:Float = 1.0, _alpha:Float = 1.0, ?color:Col = 0xff8c00) {
 		var p = allocDisplacer_normal(D.tiles.fxHeat, x, y);
-		p.rotation=rnd(0.01,3.14);
-		p.setFadeS(1,0.2,0.2);
-		p.scaleMul=0.99;
-		p.alpha=_alpha;
-		p.scale=_scale;
-		p.gx=rnd(-0.001,0.001);
-		p.gy=rnd(-0.01,-0.05);
-		p.lifeS = rnd(0.01,s+0.1);
+		p.rotation = rnd(0.01, 3.14);
+		p.setFadeS(1, 0.2, 0.2);
+		p.scaleMul = 0.99;
+		p.alpha = _alpha;
+		p.scale = _scale;
+		p.gx = rnd(-0.001, 0.001);
+		p.gy = rnd(-0.01, -0.05);
+		p.lifeS = rnd(0.01, s + 0.1);
 	}
 
 	public inline function surprise(x:Float, y:Float, ?s:Float = 1, ?color:Col = 0xff8c00) {
@@ -276,8 +299,8 @@ class Fx extends GameChildProcess {
 		}
 
 		p.colorize(color, 1);
-		p.setFadeS(0.8, 0.5, 0.5);
-		p.lifeS = 1;
+		p.setFadeS(0.8, 0.25, 0.25);
+		p.lifeS = 0.5;
 	}
 
 	public inline function markerText(cx:Int, cy:Int, txt:String, t = 1.0) {
@@ -373,42 +396,44 @@ class Fx extends GameChildProcess {
 		if (rnd(0, 3) < 2)
 			explosion(p.x, p.y, 1, 0xff0000, 1);
 	}
-	public inline function embers(x:Float,y:Float,col:Col = 0xff5500){
-		var n=irnd(5,20);
-		for(i in 0...n){
+
+	public inline function embers(x:Float, y:Float, col:Col = 0xff5500,dirY:Float=-1) {
+		var n = irnd(5, 20);
+		for (i in 0...n) {
 			var p = allocMain_add(D.tiles.fxDot0, x, y);
-			p.colorize(col,rnd(0,1));
+			p.colorize(col, rnd(0, 1));
 			p.colorAnimS(col, 0xF1F65B, rnd(0.6, 3));
 			p.dx = 0.75 * rnd(-2, 2);
-			p.dy= -rnd(0.5,2);
-			p.gy=0.1;
-			p.lifeS=1;
-			p.dr = rnd(0.1,0.4,true);
-			//p.frict = rnd(0.99, 0.99);
+			p.dy = dirY*rnd(0.5, 2);
+			p.gy = 0.1;
+			p.lifeS = 2;
+			p.dr = rnd(0.1, 0.4, true);
+			// p.frict = rnd(0.99, 0.99);
 			p.setScale(rnd(0.1, 2));
 			p.delayS = i * 0.02 * rnd(0., 0.1, true);
-			p.onUpdate=_emberPhysics;
+			p.onUpdate = _emberPhysics;
 			/*p.groundY=y;
-			p.onTouchGround=function(o:HParticle){
-				o.dy*=-1;
-				o.dx=rnd(-0.5,0.5);
+				p.onTouchGround=function(o:HParticle){
+					o.dy*=-1;
+					o.dx=rnd(-0.5,0.5);
 			}*/
 		}
-		
 	}
-	function _emberPhysics(p:HParticle){
-		if( collides(p) ) {
-			p.dx *= Math.pow(rnd(0.8,0.9),tmod);
+
+	function _emberPhysics(p:HParticle) {
+		if (collides(p)) {
+			p.dx *= Math.pow(rnd(0.8, 0.9), tmod);
 			p.dy = 0;
 			p.gy = 0;
-			p.dr *= Math.pow(0.8,tmod);
+			p.dr *= Math.pow(0.8, tmod);
 			p.lifeS = 0;
 		}
-		if( !collides(p) && ( collides(p,1,0) || collides(p,-1,0) ) ) {
-			p.dx = -p.dx*0.99;
-			p.dr*=-1;
+		if (!collides(p) && (collides(p, 1, 0) || collides(p, -1, 0))) {
+			p.dx = -p.dx * 0.99;
+			p.dr *= -1;
 		}
 	}
+
 	public inline function flame(x:Float, y:Float, color:Col = 0xf58500) {
 		var p = allocMain_add(D.tiles.fxFlame, x, y);
 		p.scale = rnd(0.1, 1);
@@ -418,9 +443,11 @@ class Fx extends GameChildProcess {
 		p.colorize(color);
 		p.colorAnimS(color, 0xFC3333, rnd(0.6, 3));
 		p.playAnimLoop(A.tiles, D.tiles.fxFlame, rnd(0.6, 1.8));
-		if(rnd(0,10)>7){
-			if(App.ME.options.shaders==true){heat(x,y,0.5);}
-			embers(x,y);
+		if (rnd(0, 10) > 7) {
+			if (App.ME.options.shaders == true) {
+				heat(x, y, 0.5);
+			}
+			embers(x, y);
 		};
 	}
 
@@ -445,11 +472,192 @@ class Fx extends GameChildProcess {
 	public inline function cloud(x:Float, y:Float, ang:Float = 0.0, dir:Int = 0) {
 		var p = allocMain_normal(D.tiles.cloud1, x, y);
 		p.rotation = (ang / 180 * M.PI) * -dir;
-		p.scale = 1;
+		p.scale = 0.5;
+		p.alpha = 0.01;
 		// p.lifeS = 0.4;
 		p.gx = rnd(-0.02, 0.02); // gravity Y (added on each frame)
 		p.lifeS = rnd(2, 3);
-		p.setFadeS(0.7, rnd(0.1, 2), 0.1);
+		p.setFadeS(0.1, rnd(0.1, 2), 0.1);
+	}
+
+	/** bubbles **/
+	public inline function bubbles(x:Float, y:Float, ?color:UInt = 0xA6EDF5, maxY:Float, ?size:Float = 0.5) {
+		for (i in 0...1) {
+			var p;
+			p = allocFront_add(D.tiles.bubble1, x, y);
+
+			var yy = y;
+			p.scale = rnd(0.1, 1);
+			p.alpha = rnd(0.1, 0.5);
+			p.colorize(color, 0.5);
+
+			// p.colorAnimS(color, 0xffffff, 0.1); // fade particle color from given color to some purple
+			// p.fadeIn(0.5, 2);
+			p.frict = 0; // friction applied to velocities
+			var vy = rnd(0.25, 0.65);
+			p.gy = -vy; // gravity Y (added on each frame)
+			// p.lifeS = 1.5; // life time in seconds
+			p.dx = rnd(0.05, -0.05, true);
+			p.dy = -0.2;
+			p.gx = p.dx;
+			tw.createS(p.a, 0, TLinear, 3).update(function() {
+				if (p.y < maxY) {
+					// trace("adios amigos, so looong");
+					p.kill();
+				}
+			}).end(p.kill);
+		}
+	}
+
+	/** sploutch sploutch**/
+	public inline function sploutch(x:Float, y:Float, force:Float = 1.0, ?color:UInt = 0xffffff) {
+		var p = allocFront_add(D.tiles.pixel, x, y);
+		p.scale = rnd(1, 4);
+		p.colorAnimS(color, 0x2adfff, 0.1);
+		p.gy = 0.5;
+		p.frict = 0.9;
+		p.dx = rnd(-0.5, 0.5, true) * force;
+		p.dy = -force * rnd(0.1, 1.25);
+		p.setFadeS(0.8, 0.1, 0.1);
+		p.lifeS = 2;
+		p.onUpdate = function(p:HParticle) {
+			if (collides(p) || p.y > y + 6) {
+				p.remove();
+			}
+		}
+	}
+
+	public inline function waveSplash(x:Float, y:Float, up:Bool = true, ?col:Col = 0x0436ff) {
+		var p = allocMain_add(D.tiles.waveSplash, x, y);
+		p.colorize(col, rnd(0, 1));
+		p.colorAnimS(col, 0xFDFDF2, rnd(0.6, 3));
+		p.lifeS=0.3;
+		p.setFadeS(0.8, 0.01, 0.2);
+		p.gy=0;
+		p.x=x;
+		p.y=y+8;
+		p.scaleY*=rnd(1,2);
+		p.scaleYMul=1.02;
+		p.scaleXMul=0.98;
+		if(up){
+			p.y-=16;
+			p.scaleY*=-1;
+		}
+	}
+
+	public inline function splash(x:Float, y:Float, ?grdY:Float = null, ?force:Float = 1.0, ?col:Col = 0x0436ff) {
+		var n = irnd(50, 200);
+		for (i in 0...n) {
+			var p = allocMain_add(D.tiles.fxDot0, x, y);
+			p.colorize(col, rnd(0, 1));
+			p.colorAnimS(col, 0xFDFDF2, rnd(0.6, 3));
+			p.dx = 0.75 * rnd(-2, 2);
+			p.dy = -rnd(0.5, 2.8);
+			p.gy = 0.1;
+			p.lifeS = 4;
+			// p.dr = rnd(0.1, 0.4, true);
+			// p.frict = rnd(0.99, 0.99);
+			p.setScale(rnd(0.1, 2));
+			p.delayS = i * 0.02 * rnd(0., 0.1, true);
+			p.onUpdate = _emberPhysics;
+			if (grdY != null) {
+				p.groundY = grdY; //*Const.SCALE;
+				p.onTouchGround = function(p:HParticle) {
+					p.dy = 0;
+					p.dx *= 0.5;
+					if (M.fabs(p.dx) <= 0.01) {
+						p.kill();
+					}
+				}
+			} else {}
+		}
+	}
+
+	/** waves **/
+	public inline function waves(x:Float, y:Float, startX:Float, endX:Float, ?color:UInt = 0x1C929F, maxY:Float, ?size:Float = 0.5) {
+		for (i in 0...1) {
+			var p;
+			var r = irnd(0, 2);
+			if (r == 0) {
+				p = allocFront_add(D.tiles.wave0, x, y);
+			} else if (r == 1) {
+				p = allocFront_add(D.tiles.wave1, x, y);
+			} else {
+				p = allocFront_add(D.tiles.wave2, x, y);
+			}
+			if (rnd(0, 100) < 60) {
+				var p1;
+				if (x > endX - 8) {
+					p1 = allocFront_add(D.tiles.waveBorderTop, endX, y);
+					p1.scale = 0.5;
+					p1.scaleX = 1;
+					p1.setFadeS(0.3, 0.1, 0.1);
+					p1.lifeS = 0.15;
+					p1.x -= 3;
+					p1.y += 4 + Math.sin(hxd.Timer.frameCount * 0.1 + p1.x / 180 * 3.1416 * 6) * 2;
+				} else if (x < startX + 8) {
+					p1 = allocFront_add(D.tiles.waveBorderTop, startX, y);
+					p1.scale = 0.5;
+					p1.scaleX = -1;
+					p1.x += 3;
+					p1.setFadeS(0.1, 0.1, 0.05);
+					p1.lifeS = 0.15;
+					p1.y += 4 + Math.sin(hxd.Timer.frameCount * 0.1 + p1.x / 180 * 3.1416 * 6) * 2;
+				}
+			}
+			p.y += 4 + Math.sin(hxd.Timer.frameCount * 0.1 + p.x / 180 * 3.1416 * 6) * 2;
+			var yy = y;
+			p.scale = 0.5; // rnd(0.5, 1);
+			p.alpha = rnd(0.2, 0.9);
+			p.colorize(color, rnd(0.2, 0.9));
+			p.setFadeS(0.3, 0.1, 0.1);
+			// p.colorAnimS(color, 0xffffff, 0.1); // fade particle color from given color to some purple
+			p.frict = 0; // friction applied to velocities
+			var vy = rnd(0.1, 0.25);
+			p.gy = 0; // gravity Y (added on each frame)
+			p.lifeS = 0.15; // life time in seconds
+			p.dx = 0;
+			p.dy = 0;
+			p.gx = 0;
+			/*tw.createS(p.a,0,TLinear,4).update(function(){
+				if(p.y<maxY-4){p.remove();}
+			}).end(p.remove);*/
+		}
+	}
+
+	// snow
+	public inline function snow(x:Float, y:Float, ?color:UInt = 0xD1F1F4, ?front:Bool = true, ?size:Float = 0.5) {
+		for (i in 0...1) {
+			var p;
+			if (front == false) {
+				p = allocBg_add(D.tiles.fxFlake0, x, y);
+			} else {
+				p = allocMain_add(D.tiles.fxFlake1, x, y);
+			}
+
+			p.alpha = rnd(0.1, 1);
+			p.colorize(color, 1);
+			// p.scaleMul=0.99;
+			p.scale = rnd(0.1, 0.25);
+			p.rotation = rnd(0, 180);
+			// p.colorAnimS(color, 0xffffff, 0.1); // fade particle color from given color to some purple
+			// p.fadeIn(0.5,1);
+			p.frict = 0; // friction applied to velocities
+			var vy = rnd(0.25, 1);
+			p.gy = vy; // gravity Y (added on each frame)
+			var vx = rnd(-0.2, 0.2, true);
+			p.lifeS = 5; // life time in seconds
+			p.setFadeS(0.9, 0.1, 0.5);
+			p.dx = vx;
+			p.gx = vx;
+			p.dy = 0.2;
+			// p.scaleY = vy;
+			// p.autoRotate(vy*0.05);
+
+			/*tw.createS(p.a,0,TLinear,4).update(function(){
+				if(collides(p) && p.y>36){p.remove();}
+			}).end(p.remove);*/
+		}
 	}
 
 	public inline function explosion(x:Float, y:Float, dir:Int, color:Col, n:Int = 12) {

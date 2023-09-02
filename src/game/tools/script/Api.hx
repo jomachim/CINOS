@@ -13,6 +13,10 @@ class Api {
 	public function playTuto(){
 		Game.ME.playTutorial();
 	}
+	public function showLoreDialog(dialog:Array<String>,x:Float,y:Float,lockControls:Bool=true){
+		if(lockControls==true) game.player.ca.lock();
+		new ui.DialogBox(dialog,x,y,Game.ME.scroller,()->{game.player.ca.unlock();});
+	}
 	public function kaboom(x:Float,y:Float){
 		Game.ME.fx.explosion(x,y,0xff8800,24);
 		Game.ME.fx.flashBangS(0x00ff00,0.8,0.5);

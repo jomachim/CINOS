@@ -23,10 +23,10 @@ class Camera extends GameChildProcess {
 	public var cHei(get,never) : Int;  inline function get_cHei() return M.ceil(pxHei/Const.GRID);
 
 	/** Horizontal camera dead-zone in percentage of viewport width **/
-	public var deadZonePctX = 0.04;
+	public var deadZonePctX = 0.05;
 
 	/** Verticakl camera dead-zone in percentage of viewport height **/
-	public var deadZonePctY = 0.10;
+	public var deadZonePctY = 0.05;
 
 	var baseFrict = 0.89;
 	var dx = 0.;
@@ -39,8 +39,8 @@ class Camera extends GameChildProcess {
 
 	/** Actual zoom value without modifiers **/
 	var baseZoom = 1.0;
-	var zoomSpeed = 0.0014;
-	var zoomFrict = 0.9;
+	var zoomSpeed = 0.014;
+	var zoomFrict = 0.99;
 
 	/** Current zoom factor, including all modifiers **/
 	public var zoom(get,never) : Float;

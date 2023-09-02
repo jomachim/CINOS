@@ -1,9 +1,15 @@
+import dn.heaps.filter.Crt;
+import sample.Rat;
+import page.InventoryPage;
+import sample.Chest;
+import sample.Bat;
 import h2d.Scene;
 import hxsl.Types.Vec;
 import sample.Door;
 import sample.Computer;
 import sample.Swirl;
 import ldtk.Json.ProjectJson;
+import Meteo;
 #if hl
 import sys.io.File;
 #end
@@ -31,6 +37,7 @@ import sample.Craft;
 import GameStats;
 import eng.GC;
 import ui.MiniMap;
+import dn.Delayer;
 
 typedef Savable = {
 	var niveau:Int;
@@ -48,6 +55,8 @@ class Game extends AppChildProcess {
 	/** Game controller (pad or keyboard) **/
 	public var ca:ControllerAccess<GameAction>;
 
+	public var baseZoom:Float = 0.5;
+
 	/** Particles **/
 	public var fx:Fx;
 
@@ -64,6 +73,7 @@ class Game extends AppChildProcess {
 	public var displaceLayer:h2d.Layers;
 	public var fxScene:h2d.Scene;
 
+	public var chrono:h2d.Text;
 	public var miniMap:MiniMap;
 
 	/** Level data **/
@@ -74,6 +84,9 @@ class Game extends AppChildProcess {
 
 	/** Cinamtics **/
 	var cm:dn.Cinematic;
+
+	/** METEO **/
+	public var meteo:Meteo;
 
 	/** Slow mo internal values**/
 	var curGameSpeed = 1.0;
@@ -115,22 +128,25 @@ class Game extends AppChildProcess {
 		// createRootInLayers(App.ME.root, Const.DP_BG);
 		dn.Gc.runNow();
 		cm = new dn.Cinematic(Const.FPS);
-
+		meteo = new Meteo();
 		scroller = new h2d.Layers();
 		frontScroller = new h2d.Layers();
 		displaceLayer = new h2d.Layers();
 		fxScene = new h2d.Scene();
-
+		Const.timeAccumulator=0;
 		root.add(scroller, Const.DP_BG);
 		scroller.add(frontScroller, Const.DP_FRONT);
 
-		tile = new h2d.Bitmap(Tile.fromTexture(colorTexture)); //
-		App.ME.disp.normalMap = tile.tile;
+		tile = new h2d.Bitmap(Tile.fromTexture(colorTexture));
+		root.add(tile, Const.DP_FX_FRONT);
+		tile.visible = false;
+		App.ME.disp.normalMap = Tile.fromTexture(colorTexture); // tile.tile;
 
 		/*App.ME.disp.normalMap=Tile.fromTexture(colorTexture);*/
 		// tile.scale(1-1/Const.SCALE);
 		// scroller.addChild(tile);
-		scroller.add(displaceLayer, Const.DP_BG);
+		// scroller.add(displaceLayer, Const.DP_BG);
+
 		// healthFlask=new ui.Flask(64,64);
 		// normalShader = new sample.NormalShader();
 		// var wallNormals = new h2d.Bitmap(hxd.Res.atlas.wallNormal.toTile());
@@ -140,19 +156,34 @@ class Game extends AppChildProcess {
 		// normalShader.texture = normalTexture;
 		motionBlur = new MotionBlur(8);
 		// displaceLayer.filter=new dn.heaps.filter.Invert();
-		scroller.filter = new h2d.filter.Group([App.ME.disp, new h2d.filter.Nothing()]); // App.ME.simpleShader, ,App.ME.colorFilter,motionBlur force rendering for pixel perfect
+		scroller.filter = new h2d.filter.Group([App.ME.disp, new h2d.filter.Nothing(), new h2d.filter.Bloom()]); // App.ME.simpleShader, ,App.ME.colorFilter,motionBlur force rendering for pixel perfect
 		frontScroller.filter = new h2d.filter.Nothing(); // new h2d.filter.Group([new h2d.filter.Nothing(),new h2d.filter.Bloom(1.9, 1.2, 16, 1.1)]);
 		/*root.drawTo(colorTexture);
 			tile=new h2d.Bitmap(Tile.fromTexture(colorTexture),root);//
 			displaceLayer.addChild(tile);
 			scroller.add(displaceLayer, Const.DP_FRONT); */
 
+		fxScene = new h2d.Scene();
+		fxScene.getScene().filter = new h2d.filter.Bloom();
+		root.addChild(fxScene);
+		scroller.add(displaceLayer, Const.DP_FRONT);
+		// fxScene.addChild(displaceLayer);
+		// displaceLayer.visible=false;
 		fx = new Fx();
 		hud = new ui.Hud();
 		camera = new Camera();
 
 		GameStats.clearAll();
-
+		chrono = new h2d.Text(Assets.fontPixel, hud.root);
+		chrono.scale(2);
+		chrono.y = 2;
+		chrono.dropShadow = {
+			dx: 0.5,
+			dy: 0.5,
+			color: 0x042220,
+			alpha: 0.8
+		};
+		chrono.text = 'Time :' + Const.CHRONO;
 		if (App.ME.currentSavedGame != null) {
 			var sav = App.ME.currentSavedGame.data;
 			// trace(sav.currentWorld);
@@ -171,11 +202,21 @@ class Game extends AppChildProcess {
 				monde = null;
 			}
 		} else {
+			#if debug
+			currentWorld = Assets.worldData.all_worlds.Lobbie.iid; // arrayIndex;
+			currentWorldIdentifyer = Assets.worldData.all_worlds.Lobbie.identifier;
+			currentLevel = Assets.worldData.all_worlds.Lobbie.all_levels.Level_55.iid;
+			currentLevelIdentifyer = Assets.worldData.all_worlds.Lobbie.all_levels.Level_55.identifier;
+			startLevel(Assets.worldData.all_worlds.Lobbie.all_levels.Level_55);
+			cd.setS('intro', 3);
+			#else
 			currentWorld = Assets.worldData.all_worlds.Venus.iid; // arrayIndex;
 			currentWorldIdentifyer = Assets.worldData.all_worlds.Venus.identifier;
-			currentLevel = Assets.worldData.all_worlds.Venus.all_levels.Doorways.iid;
-			currentLevelIdentifyer = Assets.worldData.all_worlds.Venus.all_levels.Doorways.identifier;
-			startLevel(Assets.worldData.all_worlds.Venus.all_levels.Doorways);
+			currentLevel = Assets.worldData.all_worlds.Venus.all_levels.Level_68.iid;
+			currentLevelIdentifyer = Assets.worldData.all_worlds.Venus.all_levels.Level_68.identifier;
+			startLevel(Assets.worldData.all_worlds.Venus.all_levels.Level_68);
+			cd.setS('intro', 3);
+			#end
 		}
 
 		// scroller.filter = new h2d.filter.Bloom(1.9, 1.2, 16, 1.1);
@@ -185,10 +226,11 @@ class Game extends AppChildProcess {
 			#end
 			player = new sample.SamplePlayer();
 			// player.spr.addShader(normalShader);
+			
 		}
 		/*miniMap=new MiniMap(hud.root);
 			miniMap.containerMask.scale(1); */
-		displaceLayer.over(player.spr);
+		// displaceLayer.over(player.spr);
 		if (muz == null) {
 			muz = S.gamebasemusic();
 			muz.playFadeIn(true, App.ME.options.volume * 0.5, 2);
@@ -199,19 +241,23 @@ class Game extends AppChildProcess {
 			gameStats.load(App.ME.currentSavedGame.data.achievements);
 		}
 
-		var farine:Craft = new Craft('farine', null);
-		var oeuf:Craft = new Craft('oeuf', null);
-		var sucre:Craft = new Craft('sucre', null);
-		var eau:Craft = new Craft('eau', null);
-		var pain:Craft = new Craft('pain', [{name: 'farine', stack: 2}, {name: 'eau', stack: 1}]);
-		var crafts = [farine, farine, oeuf, sucre, eau, pain];
+		/*var farine:Craft = new Craft('farine', null);
+			var oeuf:Craft = new Craft('oeuf', null);
+			var sucre:Craft = new Craft('sucre', null);
+			var eau:Craft = new Craft('eau', null);
+			var pain:Craft = new Craft('pain', [{name: 'farine', stack: 2}, {name: 'eau', stack: 1}]);
+			var crafts = [farine, farine, oeuf, sucre, eau, pain];
 
-		for (i in 0...crafts.length) {
-			// trace(crafts[i].title);
-			// trace(crafts[i].receipe);
-			player.inventory.push(crafts[i]);
-		}
-		pain.cook();
+			for (i in 0...crafts.length) {
+				// trace(crafts[i].title);
+				// trace(crafts[i].receipe);
+				if (player.inventory.contains(crafts[i])) {
+					player.inventory[player.inventory.indexOf(crafts[i])].quantity++;
+				} else {
+					player.inventory.push(crafts[i]);
+				}
+			}
+			pain.cook(); */
 
 		// miniMap.renderMap();
 		// miniMap.updateMapPosition();
@@ -221,6 +267,15 @@ class Game extends AppChildProcess {
 		var achievs = GameStats.save();
 		var dat = Date.now();
 		var playerPos = {x: player.cx, y: player.cy};
+		// TODO canSwin...
+		var skills = {
+			canWallJump: player.canWallJump,
+			canWallRun: player.canWallRun,
+			canLazer: player.canLazer,
+			canDash: player.canDash,
+			canNinja: player.canNinja,
+			canSwim: player.canSwim
+		};
 		var sav = {
 			niveau: level.data.iid,
 			volume: App.ME.options.volume,
@@ -229,7 +284,9 @@ class Game extends AppChildProcess {
 			currentWorldID: currentWorldIdentifyer,
 			currentWorld: currentWorld,
 			achievements: achievs,
-			playerPosition: playerPos
+			playerPosition: playerPos,
+			skills: skills,
+			inventory: player.inventory
 		};
 		/*
 			playedTime: dat.getDate()
@@ -264,11 +321,11 @@ class Game extends AppChildProcess {
 		nuk.play(false, App.ME.options.volume);
 		// var bg= new h2d.ScaleGrid(Assets.tiles.getTile("uiDarkBox"), 8, 12, 8, 8);
 		// bg.tile=Assets.tiles.getTile('uiDarkBox');
-		bulle.backgroundTile = Assets.tiles.getTile(D.tiles.uiDarkBox);
-		bulle.borderWidth = 8;
-		bulle.borderHeight = 8;
+		bulle.backgroundTile = Assets.tiles.getTile(D.tiles.dialogBox); // D.tiles.uiDarkBox
+		bulle.borderWidth = 17; // 8;
+		bulle.borderHeight = 20; // 8;
 		bulle.padding = 12;
-
+		bulle.addSpacing(16);
 		tpad.visible = false;
 		// tbta.visible=false;
 		tbtb.visible = false;
@@ -367,7 +424,7 @@ class Game extends AppChildProcess {
 			bulle.y = player.attachY - 64;
 			ca.unlock();
 			500;
-			camera.zoomTo(0.75);
+			camera.zoomTo(baseZoom);
 		});
 		cm.onAllComplete = () -> {
 			// trace('cinematic terminated !');
@@ -417,6 +474,11 @@ class Game extends AppChildProcess {
 		// <---- check for scriptd here ?
 
 		// <---- Here: instanciate your level entities
+
+		for (wat in level.data.l_Entities.all_Water) {
+			new sample.WaterPond(wat);
+		}
+
 		for (mob in level.data.l_Entities.all_Mob) {
 			new Mob(mob);
 		}
@@ -449,11 +511,33 @@ class Game extends AppChildProcess {
 		for (comp in level.data.l_Entities.all_Computer) {
 			new Computer(comp);
 		}
-
+		for (rat in level.data.l_Entities.all_Rat) {
+			new Rat(rat);
+		}
+		for (bat in level.data.l_Entities.all_Bat) {
+			new Bat(bat);
+		}
+		for (chest in level.data.l_Entities.all_Chest) {
+			new Chest(chest);
+		}
 		for (door in level.data.l_Entities.all_Door) {
 			new Door(door);
 		}
-
+		for (rep in level.data.l_Entities.all_Minuter) {
+			new sample.Minuter(rep);
+		}
+		for (t in level.data.l_Entities.all_TextZone) {
+			new sample.TextZone(t);
+		}
+		for (s in level.data.l_Entities.all_Sensor) {
+			new sample.Sensor(s);
+		}
+		for (t in level.data.l_Entities.all_Tourette) {
+			new sample.Tourette(t);
+		}
+		for (s in level.data.l_Entities.all_Shower) {
+			new sample.Shower(s);
+		}
 		fadeIn(0.25);
 		camera.centerOnTarget();
 
@@ -581,14 +665,20 @@ class Game extends AppChildProcess {
 		// miniMap.renderMap();
 		// miniMap.updateMapPosition();
 		// clearing normal map spritBatch color for disp layer.
-		displaceLayer.alpha = 1;
 		colorTexture.clear(Col.fromRGBi(127, 127, 255), 1);
-
-		if (!cd.has('rain')) {
-			cd.setMs('rain', 5000);
-			if (App.ME.options.shaders == true) {
+		if (App.ME.options.shaders == true) {
+			displaceLayer.alpha = 1;
+			colorTexture.clear(Col.fromRGBi(127, 127, 255), 1);
+			fx.heatSource(player.attachX, player.attachY, M.fabs(player.v.dx) + M.fabs(player.v.dy));
+			if (!cd.has('rain')) {
+				cd.setMs('rain', 5000);
 				fx.pixelRain(rnd(0, level.pxWid), rnd(0, level.pxHei), level.pxWid, level.pxHei);
 			}
+			displaceLayer.drawTo(colorTexture);
+			tile.tile = Tile.fromTexture(colorTexture);
+			App.ME.disp.normalMap = Tile.fromTexture(colorTexture);
+			displaceLayer.alpha=0;
+			//displaceLayer.alpha = 0;
 		}
 		if (cd.has('areYouWaiting')) {
 			cd.setS('areYouWaiting', 0.1);
@@ -611,8 +701,7 @@ class Game extends AppChildProcess {
 		super.postUpdate();
 
 		if (App.ME.options.shaders == true) {
-			App.ME.disp.normalMap = tile.tile;
-			displaceLayer.alpha = 0;
+			
 		}
 
 		// currentFrame++;
@@ -655,6 +744,22 @@ class Game extends AppChildProcess {
 	/** Main loop but limited to 30 fps (so it might not be called during some frames) **/
 	override function fixedUpdate() {
 		super.fixedUpdate();
+		currentFrame++;
+		App.ME.fadeToBlack.shader.threshold=Math.sin(currentFrame/3600);
+		if (rnd(0, 1000000) < 10) {
+			meteo.state = [Rainning, Sunny, Snowing][irnd(0, 2)];
+		}
+		if (meteo.state == Snowing && !cd.has("snowing")) {
+			var rain = Std.int(rnd(0, level.pxWid / Const.GRID) * 0.5);
+			cd.setMs('snowing', rain * 1000);
+			for (i in 0...rain)
+				fx.snow(rnd(0, level.pxWid), -16, 0x91bde4, i % 4 == 0, rnd(0.01, 0.5));
+		}
+
+		var minutes = M.floor((Const.CHRONO / 1000)/ 60);
+		var seconds = M.floor((Const.CHRONO / 1000)%60);
+		var millis = M.floor(Const.CHRONO%1000);
+		chrono.text = "Time : " + (minutes<10?'0'+minutes:''+minutes) + ':' + (seconds<10?'0'+seconds:''+seconds) + ':' + (millis<10?'00'+millis:millis<100?'0'+millis:''+millis);
 
 		// scroller.drawTo(normalTexture);
 		// Entities "30 fps" loop
@@ -666,16 +771,14 @@ class Game extends AppChildProcess {
 	/** Main loop **/
 	override function update() {
 		super.update();
-
+		if(App.ME.options.shaders==true){
+			
+		}
 		// App.ME.disp.normalMap.scrollDiscrete(-0.1+player.v.dx,0.2+player.v.dy);
 		// App.ME.simpleShader.shader.multiplier = 2; // +player.v.dx;
 		// motionBlur.setHorizontalBlur(player.v.dx);
 		// motionBlur.setVerticalBlur(player.v.dy*4);
-		if (App.ME.options.shaders == true) {
-			fx.heatSource(player.attachX, player.attachY, M.fabs(player.v.dx) + M.fabs(player.v.dy));
-			displaceLayer.drawTo(colorTexture);
-			tile.tile = Tile.fromTexture(colorTexture);
-		}
+
 		// if (App.ME.options.shaders == true) {
 		// displaceLayer.drawTo(colorTexture);
 		// tile.tile = Tile.fromTexture(colorTexture);
@@ -713,6 +816,16 @@ class Game extends AppChildProcess {
 			}
 			#end
 
+			if (ca.isKeyboardPressed(K.O)) {
+				ca.lock();
+				pause();
+				new page.OptionPage(App.ME);
+			}
+			if (ca.isKeyboardPressed(K.I)) {
+				ca.lock();
+				// pause();
+				new page.InventoryPage();
+			}
 			// Attach debug drone (CTRL-SHIFT-D)
 			#if debug
 			if (ca.isPressed(ToggleDebugDrone))

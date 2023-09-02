@@ -45,6 +45,7 @@ class Hud extends GameChildProcess {
 		
 		healthFlaskFlow = new h2d.Flow(root);
 		healthFlask = new Flask(64,64,healthFlaskFlow);
+		healthFlaskFlow.layout = Vertical;
 		healthFlask.scale(1);
 		healthFlaskFlow.padding=16;
 		healthFlaskFlow.verticalAlign = Bottom;
@@ -65,7 +66,7 @@ class Hud extends GameChildProcess {
 	override function onResize() {
 		super.onResize();
 		root.setScale(Const.UI_SCALE);
-		flow.x = Std.int( 0.5 * w()/Const.SCALE - flow.outerWidth*0.5 );
+		flow.x = Std.int( 0.5 * w()/Const.UI_SCALE - flow.outerWidth*0.5 );
 		flow.y = 1;
 	}
 

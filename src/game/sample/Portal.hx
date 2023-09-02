@@ -7,7 +7,7 @@ class Portal extends Entity {
 	public static var ALL:Array<Portal> = [];
 
 	public var data:Entity_Portal;
-	public var destRef:ldtk.EntityReferenceInfos;
+	public var destRef:Array<ldtk.EntityReferenceInfos>;
 	public var activable:Bool = false;
 	public var isDoor:Bool = false;
 
@@ -23,7 +23,7 @@ class Portal extends Entity {
 	public function new(portal:Entity_Portal) {
 		super(5, 5);
 		data = portal;
-		destRef = portal.f_Entity_ref;
+		destRef = portal.f_Entity_refs;
 		isDoor = portal.f_isDoor;
 		// trace(destRef);
 		wid = portal.width;
@@ -65,21 +65,22 @@ class Portal extends Entity {
 		}
 		if (collides && !game.player.cd.has('changedLevel') && activable == true) {
 			game.player.destination = {
-				level: data.f_Entity_ref.levelIid,
-				door: data.f_Entity_ref.entityIid,
-				layer: data.f_Entity_ref.layerIid,
-				world: data.f_Entity_ref.worldIid
+    			level: data.f_Entity_refs[0].levelIid,
+				door: data.f_Entity_refs[0].entityIid,
+				layer: data.f_Entity_refs[0].layerIid,
+				world: data.f_Entity_refs[0].worldIid
 			}
 			activable = false;
 
-			if (game.currentLevel == destRef.levelIid) {
+			if (game.currentLevel == destRef[0].levelIid) {
 				var port = ALL.filter((p:Portal) -> {
-					return p.data.iid == destRef.entityIid;
+					return p.data.iid == destRef[0].entityIid;
 				})[0];
 				game.player.cx = port.cx;
 				game.player.cy = port.cy;
 				game.player.onPosManuallyChangedBoth();
-				game.player.cd.setS('changedLevel', 2);
+				game.player.cd.setS('changedLevel', 0.8);
+				game.camera.trackEntity(game.player,true,100);
 			} else {
 				for (w in Assets.worldData.worlds) {
 					// trace(w.identifier + '(' + w.iid + ')');
@@ -87,18 +88,19 @@ class Portal extends Entity {
 					for (l in monde.levels) {
 						if (l.iid == game.player.destination.level) {
 							for (por in l.l_Entities.all_Portal) {
-								if (por.iid == destRef.entityIid) {
-									game.player.cx = por.cx;
-									game.player.cy = por.cy;
-									game.player.onPosManuallyChangedBoth();
-									game.player.cd.setS('changedLevel', 0.2);
-									game.currentLevelIdentifyer = l.identifier;
-									game.currentWorldIdentifyer = w.identifier;
-									hud.notify('téléportinge');
+								if (por.iid == destRef[0].entityIid) {
+									// hud.notify('téléportinge');
 									Game.ME.fadeOut(0.25);
 									game.delayer.addF("changedLevel", () -> {
 										Game.ME.fadeIn(0.25);
 										game.startLevel(l);
+										game.player.cx = por.cx;
+										game.player.cy = por.cy;
+										game.player.onPosManuallyChangedBoth();
+										game.player.cd.setS('changedLevel', 0.2);
+										game.currentLevelIdentifyer = l.identifier;
+										game.currentWorldIdentifyer = w.identifier;
+										game.camera.trackEntity(game.player,true,100);
 									}, 1);
 								}
 							}

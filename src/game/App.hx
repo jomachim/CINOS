@@ -1,3 +1,5 @@
+import h2d.filter.Bloom;
+
 /**
 	"App" class takes care of all the top-level stuff in the whole application. Any other Process, including Game instance, should be a child of App.
 **/
@@ -19,25 +21,26 @@ class App extends dn.Process {
 
 	/** Used to create "ControllerAccess" instances that will grant controller usage (keyboard or gamepad) **/
 	public var controller:Controller<GameAction>;
-	public var controller2:Controller<GameAction>;
 
 	/** Controller Access created for Main & Boot **/
 	public var ca:ControllerAccess<GameAction>;
-	public var ca2:ControllerAccess<GameAction>;
 	/** If TRUE, game is paused, and a Contrast filter is applied **/
-	public var screenshotMode(default, null) = false;
+	public var screenshotMode(default, null) = true;
 
 	public static var windowInst:hxd.Window;
 
 	// saves
 	public var savegames:hxd.Save;
 	public var simpleShader:sample.SimpleShader;
+	public var fadeToBlack:sample.FadeToBlackShader;
+	public var crt:dn.heaps.filter.Crt;
 	public var disp:h2d.filter.Displacement;
 	public var colorFilter:ColorFilter;
+	public var bloom:h2d.filter.Bloom;
 	public var colorShader:h3d.shader.ScreenShader;
 	public var filterGroup:h2d.filter.Group;
 	public var currentSavedGame = null;
-	public var options = {volume: 0.25, difficulty: 1, shaders: true};
+	public var options = {volume: 1, gain:0.5, difficulty: 1, shaders: false};
 	public var colorTexture:h3d.mat.Texture;
 
 	public function new(s:h2d.Scene) {
@@ -74,19 +77,24 @@ class App extends dn.Process {
 	public function resetFilters() {
 		disp = null;
 		simpleShader = null;
+		fadeToBlack = null;
 		colorFilter = null;
 		filterGroup = null;
+		bloom = new h2d.filter.Bloom(0.125,0.125,8,0.125,3);
 		disp = new h2d.filter.Displacement(Assets.normdisp.tile, 8, 8, true); // Tile.fromColor(0x00ff00,engine.width,engine.height)
-		/*simpleShader = new sample.SimpleShader(1.0);
-			simpleShader.shader.multiplier = 2;
-			colorFilter=new ColorFilter();
+		simpleShader = new sample.SimpleShader(1.0);
+		simpleShader.shader.multiplier = 2;
+		fadeToBlack = new sample.FadeToBlackShader(1.0);
+		fadeToBlack.shader.threshold=0.5;
+		crt=new dn.heaps.filter.Crt();
+			/*colorFilter=new ColorFilter();
 			colorFilter.shader.passed=rnd(0.0,1.0);
 			colorFilter=new h2d.filter.Shader<ColorFilter>(new ColorFilter(),"texture"); */
 		if (options.shaders == true) {
-			filterGroup = new h2d.filter.Group([new dn.heaps.filter.Crt()]); // colorFilter,
+			filterGroup = new h2d.filter.Group([crt,simpleShader]); //colorFilter ,bloom
 			root.getScene().filter = filterGroup;
 		} else {
-			root.getScene().filter = null;
+			root.getScene().filter = new h2d.filter.Group([simpleShader]);
 		}
 	}
 
@@ -306,11 +314,8 @@ class App extends dn.Process {
 	/** Init game controller and default key bindings **/
 	function initController() {
 		controller = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
-		controller2 = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
 		ca = controller.createAccess();
-		ca2 = controller2.createAccess();
 		ca.lockCondition = () -> return destroyed || anyInputHasFocus();
-		ca2.lockCondition = () -> return destroyed || anyInputHasFocus();
 
 		initControllerBindings();
 	}
@@ -329,7 +334,8 @@ class App extends dn.Process {
 
 		controller.bindPad(Lock, RT);
 		controller.bindPadCombo(Extra, [LT, LB]);
-
+		controller.bindPad(InventoryScreen, LSTICK_PUSH);
+		controller.bindPad(InventoryScreen, RSTICK_PUSH);
 		controller.bindPad(Restart, SELECT);
 		controller.bindPad(Pause, START);
 
@@ -378,7 +384,6 @@ class App extends dn.Process {
 		controller.bindPadCombo(ToggleDebugDrone, [LSTICK_PUSH, RSTICK_PUSH]);
 		controller.bindKeyboardCombo(ToggleDebugDrone, [K.D, K.CTRL, K.SHIFT]);
 		#end
-		controller2.bindings=controller.bindings;
 	}
 
 	/** Return TRUE if an App instance exists **/

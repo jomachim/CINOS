@@ -1,3 +1,4 @@
+import dn.heaps.Sfx;
 import dn.Gc;
 import h2d.filter.Group;
 import ui.Hud;
@@ -50,29 +51,53 @@ class Level extends GameChildProcess {
 
 	public var cinema:dn.Cinematic;
 	public var script:Dynamic;
+	public var levelMusic:String;
+	public var currentMuz:Sfx;
 
 	var invalidated = true;
-
 
 	public function new(ldtkLevel:World.World_Level) {
 		super();
 		cinema = new dn.Cinematic(Const.FPS);
 		norm = new NormalShader();
-		bloom = new Bloom(4,4,2,2,2);
+		bloom = new Bloom(4, 4, 2, 2, 2);
 		createRootInLayers(Game.ME.scroller, Const.DP_BG);
 		data = ldtkLevel;
 		cWid = data.l_Collisions.cWid;
 		cHei = data.l_Collisions.cHei;
+		levelMusic = data.f_MusicTrack;
 		pxWid = cWid * Const.GRID;
 		pxHei = cHei * Const.GRID;
-		
-		if (!game.gameStats.has(data.identifier+ "_visited")) {
-			var ach = new Achievement(data.identifier+"_visited", "visited", () -> true, () -> {
-				//trace("level is being visited");
+
+		if (levelMusic != null && game.muz != null) {
+			game.muz.stop();
+			switch (levelMusic) {
+				case "ragtimusic":
+					game.muz = S.ragtimusic();
+				case "aventuremusic":
+					game.muz = S.aventuremusic();
+				case "melomusic":
+					game.muz = S.melomusic();
+				case "aquaticMusic":
+					game.muz = S.aquaticmusic();
+				case _:
+					game.muz = S.gamebasemusic();
+			}
+
+			game.muz.playFadeIn(true, App.ME.options.volume * 0.35, 2);
+		}
+		if (!game.gameStats.has(data.identifier + "_visited")) {
+			var ach = new Achievement(data.identifier + "_visited", "visited", () -> true, () -> {
+				// trace("level is being visited");
 			}, true);
 			game.gameStats.registerState(ach);
-			ach=null;
+			ach = null;
 		}
+		if (game.player != null) {
+			game.player.cd.unset('recentlyOnElevator');
+			game.player.parented = null;
+		}
+
 		if (data.f_cinematics != null && !game.gameStats.has('cinematics_' + data.iid)) {
 			// script=game.hsParser.parseString();
 			var scripter = tools.script.Script;
@@ -81,7 +106,7 @@ class Level extends GameChildProcess {
 				scripter.run(data.f_cinematics);
 			}, 0);
 			var cineDone = new Achievement('cinematics_' + data.iid, "done", () -> true, () -> {
-				//trace("ACHIEVEMENT : cine done");
+				// trace("ACHIEVEMENT : cine done");
 			}, true);
 			game.gameStats.registerState(cineDone);
 		}
@@ -89,51 +114,49 @@ class Level extends GameChildProcess {
 		decoTileSetSource = hxd.Res.levels.decoTiles.toAseprite().toTile();
 		// normalTileSource = hxd.Res.levels.normalTiles.toAseprite().toTile();
 
-		game.currentLevel=data.iid;
-		//trace(game.currentWorld+", "+game.currentLevel);
+		game.currentLevel = data.iid;
+		// trace(game.currentWorld+", "+game.currentLevel);
 		for (w in Assets.worldData.worlds) {
-			//trace(w.identifier + '(' + w.iid + ')');
+			// trace(w.identifier + '(' + w.iid + ')');
 			var monde = Assets.worldData.getWorld(w.iid);
 			for (l in monde.levels) {
 				if (l.iid == data.iid) {
 					game.currentLevelIdentifyer = l.identifier;
 					game.currentWorldIdentifyer = w.identifier;
-					game.currentLevel=data.iid;
-					game.currentWorld=w.iid;
-					//startLevel(l);
+					game.currentLevel = data.iid;
+					game.currentWorld = w.iid;
+					// startLevel(l);
 				}
 			}
-			monde=null;
+			monde = null;
 		}
-		game.hud.notify(game.currentWorldIdentifyer+", "+game.currentLevelIdentifyer,Col.blue(true));
-
-		
+		game.hud.notify(game.currentWorldIdentifyer + ", " + game.currentLevelIdentifyer, Col.blue(true));
 
 		marks = new dn.MarkerMap(cWid, cHei);
 		breakables = new tools.MarkerMap(cWid, cHei);
 		tags = new dn.MarkerMap(cWid, cHei);
-		
+
 		for (cy in 0...cHei)
 			for (cx in 0...cWid) {
 				for (tile in data.l_Tiles.getTileStackAt(cx, cy)) {
 					if (data.l_Tiles.tileset.hasTag(tile.tileId, assets.Enum_TileEnum.Checkpoint)) { // 587
-						//trace("checkpoint !!!");
-						//trace("tile ID ? : " + tile);
+						// trace("checkpoint !!!");
+						// trace("tile ID ? : " + tile);
 						tags.set(M_CHKPT, cx, cy);
 					}
 					if (data.l_Tiles.tileset.hasTag(tile.tileId, assets.Enum_TileEnum.Jumper)) { // 587
-						//trace("jumper !!!");
-						//trace("tile ID ? : " + tile);
+						// trace("jumper !!!");
+						// trace("tile ID ? : " + tile);
 						tags.set(M_JUMPER, cx, cy);
 					}
 					if (data.l_Tiles.tileset.hasTag(tile.tileId, assets.Enum_TileEnum.Ice)) { // 587
-						//trace("ICE !!!");
-						//trace("tile ID ? : " + tile);
+						// trace("ICE !!!");
+						// trace("tile ID ? : " + tile);
 						tags.set(M_ICE, cx, cy);
 					}
 					if (data.l_Tiles.tileset.hasTag(tile.tileId, assets.Enum_TileEnum.PortalSwirl)) { // 587
-						//trace("ICE !!!");
-						//trace("tile ID ? : " + tile);
+						// trace("ICE !!!");
+						// trace("tile ID ? : " + tile);
 						tags.set(M_SWIRL, cx, cy);
 					}
 				}
@@ -155,6 +178,8 @@ class Level extends GameChildProcess {
 					marks.set(M_Coll_Slope_LD2, cx, cy);
 				if (data.l_Collisions.getInt(cx, cy) == 9)
 					marks.set(M_Coll_Slope_RD2, cx, cy);
+				if (data.l_Collisions.getInt(cx, cy) == 10)
+					marks.set(M_Coll_Ledge, cx, cy);
 			}
 	}
 
@@ -167,7 +192,7 @@ class Level extends GameChildProcess {
 		marks.dispose();
 		marks = null;
 		tags.dispose();
-		tags=null;
+		tags = null;
 		breakables.dispose();
 		breakables = null;
 		Gc.runNow();
@@ -187,7 +212,7 @@ class Level extends GameChildProcess {
 	}
 
 	public inline function hasBreakable(cx, cy):Bool {
-		return breakables.has(Breaks, cx, cy) || breakables.has(Breaking, cx, cy) || breakables.has(Broken, cx, cy);
+		return breakables.has(Breaks, cx, cy) || breakables.has(Breaking, cx, cy) || breakables.has(Door, cx, cy); //
 	}
 
 	/** Return TRUE if "Collisions" layer contains a collision value **/
@@ -195,12 +220,18 @@ class Level extends GameChildProcess {
 		return !isValid(cx, cy) ? true : marks.has(M_Coll_Wall, cx, cy) || hasBreakable(cx, cy);
 	}
 
+	public inline function hasLedge(cx, cy):Bool {
+		return !isValid(cx, cy) ? true : marks.has(M_Coll_Ledge, cx, cy);
+	}
+
 	public inline function hasCheckPoint(cx, cy):Bool {
 		return tags.has(M_CHKPT, cx, cy);
 	}
+
 	public inline function hasJumper(cx, cy):Bool {
 		return tags.has(M_JUMPER, cx, cy);
 	}
+
 	public inline function hasIce(cx, cy):Bool {
 		return tags.has(M_ICE, cx, cy);
 	}
@@ -208,6 +239,7 @@ class Level extends GameChildProcess {
 	public inline function hasSwirl(cx, cy):Bool {
 		return tags.has(M_SWIRL, cx, cy);
 	}
+
 	/** Return true for slope type "Collisions" layer contains a collision value **/
 	public inline function isLUSlope(cx, cy):Bool {
 		return !isValid(cx, cy) ? true : marks.has(M_Coll_Slope_LU, cx, cy);
@@ -215,6 +247,14 @@ class Level extends GameChildProcess {
 
 	public inline function isLUSlope2(cx, cy):Bool {
 		return !isValid(cx, cy) ? true : marks.has(M_Coll_Slope_LU2, cx, cy);
+	}
+
+	public inline function isLUSlope3(cx, cy):Bool {
+		return !isValid(cx, cy) ? true : marks.has(M_Coll_Slope_LU3, cx, cy);
+	}
+
+	public inline function isRUSlope3(cx, cy):Bool {
+		return !isValid(cx, cy) ? true : marks.has(M_Coll_Slope_RU3, cx, cy);
 	}
 
 	public inline function isRUSlope(cx, cy):Bool {
@@ -245,38 +285,39 @@ class Level extends GameChildProcess {
 	function render() {
 		// Placeholder level render
 		// root.removeChildren();
-		
+
 		var tgb = new h2d.TileGroup(tilesetSource, root);
 		var backlayer = data.l_BackTiles;
 		backlayer.render(tgb);
-		//App.ME.colorFilter.shader.passed=rnd(0,1);
-		//tgb.filter=new Group([App.ME.disp]); // bloom;
+		// App.ME.colorFilter.shader.passed=rnd(0,1);
+		// tgb.filter=new Group([App.ME.disp]); // bloom;
 		var para = new h2d.TileGroup(tilesetSource, root);
 		var paralayer = data.l_ParallaxTiles;
 		paralayer.render(para);
 
-
 		var tg = new h2d.TileGroup(tilesetSource, root);
 		var layer = data.l_Collisions;
 		layer.render(tg);
+
+		/*var al = new h2d.TileGroup(tilesetSource, root);
+			var la = data.l_IntGrider;
+			la.render(al);
+			al.alpha = 0.5; */
+
+		//game.tile = new h2d.Bitmap(Tile.fromTexture(game.colorTexture));
 		
+		// game.displaceLayer.addChild(game.tile);
+		// game.frontScroller.add(game.displaceLayer, Const.DP_FRONT);
 
-		var al = new h2d.TileGroup(tilesetSource,root);
-		var la = data.l_IntGrider;
-		la.render(al);
-		al.alpha=0.5;
-
-		game.tile=new h2d.Bitmap(Tile.fromTexture(game.colorTexture));
-		//game.displaceLayer.addChild(game.tile);
-		//game.frontScroller.add(game.displaceLayer, Const.DP_FRONT);
-
-		
 		game.frontScroller.removeChildren();
+		// front tiles
+		var ftg = new h2d.TileGroup(tilesetSource, game.frontScroller);
+		var tileLayer = data.l_FrontTiles;
+		tileLayer.render(ftg);
+		// front deco
 		var dg = new h2d.TileGroup(decoTileSetSource, game.frontScroller);
 		var decoLayer = data.l_Tiles;
 		decoLayer.render(dg);
-		
-		// var ptg:h2d.TileGroup = new h2d.TileGroup(tilesetSource,root);
 	}
 
 	override function postUpdate() {

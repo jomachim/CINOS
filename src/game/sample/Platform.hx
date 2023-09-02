@@ -1,5 +1,6 @@
 package sample;
 
+import GameStats;
 import h2d.col.Point;
 import h2d.filter.Bloom;
 
@@ -21,6 +22,7 @@ class Platform extends Entity {
 	public var speed:Float = 0;
 	public var maxSpeed:Float = 0.1;
 	public var activated:Bool = false;
+	public var once:Bool;
 
 	public function new(ent:Entity_Platform) {
 		super(ent.cx, ent.cy);
@@ -31,8 +33,9 @@ class Platform extends Entity {
 		ALL.push(this);
 		setPosCase(ent.cx, ent.cy);
 		data = ent;
+		once=ent.f_once;
 		dirY = ent.f_dirY;
-		startY = M.floor(Math.min(ent.f_startPoint.cy, ent.f_endPoint.cy));
+  		startY = M.floor(Math.min(ent.f_startPoint.cy, ent.f_endPoint.cy));
 		endY = M.floor(Math.max(ent.f_startPoint.cy, ent.f_endPoint.cy));
 		// Placeholder display
 
@@ -45,6 +48,14 @@ class Platform extends Entity {
 		var g = new h2d.Graphics(spr);
 		var anims = dn.heaps.assets.Aseprite.getDict(hxd.Res.atlas.platform);
 		spr.anim.registerStateAnim(anims.idle, 0);
+		if (game.gameStats.has('savePos_' + data.iid)) {
+			cx = game.gameStats.get('savePos_' + data.iid).data.posX;
+			cy = game.gameStats.get('savePos_' + data.iid).data.posY;
+			dir= game.gameStats.get('savePos_' + data.iid).data.dirY;
+			setPosCase(cx, cy);
+		} else {
+			setPosCase(ent.cx, ent.cy);
+		}
 	}
 
 	override function dispose() {
@@ -55,6 +66,7 @@ class Platform extends Entity {
 		super.preUpdate();
 		// debug(dirY<0?"Up":"Down");
 		if (activated == true) {
+			if(once==true){cd.setS('shouldStop', 10);}
 			speed < maxSpeed ? speed += 0.1 : speed = maxSpeed;
 			// speed=maxSpeed;
 			v.dy = dirY * speed;
@@ -65,15 +77,16 @@ class Platform extends Entity {
 				if (cd.has('shouldStop'))
 					activated = false;
 				speed = 0;
-			} else if (dirY < 0 && (cy == startY && yr < 0.5)) { // en haut
+			} else if (dirY < 0 && (cy == startY && yr < 0.8)) { // en haut
 				yr = 1;
+				cy = startY;
 				dirY *= -1;
 				v.dy = 0;
 				if (cd.has('shouldStop'))
 					activated = false;
 				speed = 0;
 			}
-			if (cy < Std.int(startY + 1))
+			if (cy <= Std.int(startY))
 				cy = Std.int(startY);
 			if (cy > endY)
 				cy = endY;
@@ -82,6 +95,24 @@ class Platform extends Entity {
 
 	override function fixedUpdate() {
 		super.fixedUpdate();
+		if(activated && !cd.has("saving")){
+			cd.setS('saving',1);
+			game.gameStats.unregisterState('savePos_' + data.iid);
+		if (!game.gameStats.has('savePos_' + data.iid)) {
+			var pos = {
+				posX: cx,
+				posY: cy - 1,
+				dirY: dirY
+			}
+			var achPos = new Achievement("savePos_" + data.iid, "savePos", () -> true, () -> {
+				// trace("saved position");
+			}, pos);
+			game.gameStats.registerState(achPos);
+			achPos=null;
+			pos=null;
+		}
+		}
+		
 	}
 
 	override function frameUpdate() {

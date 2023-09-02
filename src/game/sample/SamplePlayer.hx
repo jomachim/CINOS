@@ -16,6 +16,9 @@ class SamplePlayer extends Entity {
 	var walkSpeed = 0.;
 	var jumpSpeed = 0.;
 
+	public var jumps:Int = 0;
+	public var maxJumps:Int = 1;
+
 	public var lazerAngle = 0.1;
 
 	var gamePadDir:Int = 0;
@@ -42,6 +45,13 @@ class SamplePlayer extends Entity {
 		world: null
 	}
 	public var parented:Null<Entity> = null;
+	public var money:Int;
+	public var canDash:Bool;
+	public var canLazer:Bool;
+	public var canWallJump:Bool;
+	public var canWallRun:Bool;
+	public var canNinja:Bool;
+	public var canSwim:Bool;
 
 	inline function get_speedX()
 		return v.dx;
@@ -63,6 +73,9 @@ class SamplePlayer extends Entity {
 	public function new() {
 		super(5, 5);
 		inventory = [];
+		money = 0;
+		canDash = false;
+		canLazer = false;
 		// Start point using level entity "PlayerStart"
 		var start = level.data.l_Entities.all_PlayerStart[0];
 		if (start != null)
@@ -73,15 +86,23 @@ class SamplePlayer extends Entity {
 			cx = s.data.playerPosition.x;
 			cy = s.data.playerPosition.y;
 			onPosManuallyChangedBoth();
+			canWallJump = s.data.skills.canWallJump;
+			canWallRun = s.data.skills.canWallRun;
+			canNinja = s.data.skills.canNinja;
+			canDash = s.data.skills.canDash;
+			canLazer = s.data.skills.canLazer;
+			canSwim = s.data.canSwim;
+			inventory = s.data.inventory;
 		}
 		// Misc inits
-		v.setFricts(0.895, 0.925);
+		v.setFricts(0.854, 0.912);
 		initLife(10);
 		hud.setLife(life, maxLife);
 		// Camera tracks this
 		camera.trackEntity(this, true);
-		camera.zoomTo(0.75);
+		camera.zoomTo(1);
 		camera.clampToLevelBounds = true;
+		camera.setTrackingSpeed(4);
 
 		// Init controller
 		ca = App.ME.controller.createAccess();
@@ -98,10 +119,11 @@ class SamplePlayer extends Entity {
 		spr.setPivotCoord(wid * 0.5, 25);
 		spr.anim.registerStateAnim(anims.jump, 6, () -> !cd.has("recentlyOnGround") && !cd.has('recentlyOnElevator'));
 		spr.anim.registerStateAnim(anims.fall, 7, () -> !cd.has("recentlyOnGround") && v.dy > 0);
-		spr.anim.registerStateAnim(anims.idle, 0, () -> cd.has('recentlyOnGround') && v.dx == 0);
+		spr.anim.registerStateAnim(anims.idle, 0, () -> (cd.has('recentlyOnGround') || cd.has("recentlyOnLedge")) && v.dx == 0);
 		spr.anim.registerStateAnim(anims.run, 2, () -> cd.has("recentMove"));
 		spr.anim.registerStateAnim(anims.roll, 4, 1 + M.fabs(v.dx),
-			() -> !cd.has('recentlyOnElevator') && cd.has('recentlyOnGround') && !cd.has("recentMove") && (v.dy > 0 || cd.has('isPressingDown')));
+			() -> !cd.has('recentlyOnElevator') && !cd.has("recentlyOnLedge") && cd.has('recentlyOnGround') && !cd.has("recentMove")
+				&& (v.dy > 0 || cd.has('isPressingDown')));
 		spr.anim.registerStateAnim(anims.roll, 8, () -> cd.has('dashing'));
 		spr.anim.registerStateAnim(anims.speedrun, 3, () -> cd.has("recentMove") && M.fabs(v.dx) > 0.35);
 		outline.color = 0x000000;
@@ -119,20 +141,52 @@ class SamplePlayer extends Entity {
 	override function onPreStepX() {
 		super.onPreStepX();
 		// cd.setMs('recentlyOnSlope', 0);
-		if (level.hasCollision(cx + dir, cy) && !level.hasCollision(cx + dir, cy - 1) && yr < 0.5) {
+		if (level.hasCollision(cx + dir, cy) && !level.hasCollision(cx + dir, cy - 1) && yr < 0.3) {
 			yr = 1;
 			cy--;
 		}
+		// Slope LU
+		if (yr > 1 - xr && level.isLUSlope(cx, cy)) {
+			yr = 1 - xr;
+			spr.rotation = -(45 / 180 * M.PI);
+			// v.dy+=v.dx;
+			// onPosManuallyChangedY();
+			cd.setS("recentlyOnGround", 0.1);
+		}
+
+		// Slope RU
+		if (xr < yr && level.isRUSlope(cx, cy)) {
+			yr = xr;
+			spr.rotation = (45 / 180 * M.PI);
+			// v.dy-=v.dx;
+			// onPosManuallyChangedY();
+			cd.setS("recentlyOnGround", 0.1);
+		}
+
 		// Right collision
-		if (xr > 0.8 && level.hasCollision(cx + 1, cy)) {
+		if (v.dx > 0 && ca.isDown(MoveUp) && !cd.has('wallRun') && cd.has('recentlyOnGround') && xr > 0.8 && level.isLUSlope(cx, cy)
+			&& !level.hasCollision(cx, cy - 1) && level.hasCollision(cx + 1, cy - 1)) {
+			v.dy = -M.fabs(v.dx) * 1.5;
+			v.dx = 0;
+			spr.rotation = -(90 / 180 * M.PI);
+			spr.x += 4;
+			xr = 0.8;
+			cd.setMs('wallRun', 2000);
+		} else if (xr > 0.8 && level.hasCollision(cx + 1, cy)) {
 			if (!level.isLUSlope(cx, cy) && !level.isLUSlope2(cx, cy)) {
 				xr = 0.8;
 				vBump.dx = 0;
 			}
 
+			// DO TO : wallRun jump (inverser direction)
 			if (level.hasCollision(cx + 1, cy - 1)) {
 				xr = 0.8;
-				if (!cd.has('recentlyOnGround') && ca.isDown(MoveRight) && ca.isDown(Jump) && !cd.has('wallJump')) {
+				if (game.level.isValid(cx + 1, cy)
+					&& !cd.has('recentlyOnGround')
+					&& (!cd.has('wallRun') ? ca.isDown(MoveRight) : ca.isDown(MoveLeft))
+					&& ca.isDown(Jump)
+					&& !cd.has('wallJump')
+					&& canWallJump) {
 					cd.setMs('wallJump', 250);
 					fx.wallDust(attachX, attachY, dir, 0xffffff);
 					v.dx = -0.62;
@@ -143,7 +197,15 @@ class SamplePlayer extends Entity {
 		}
 
 		// Left collision
-		if (xr < 0.2 && level.hasCollision(cx - 1, cy)) {
+		if (v.dx < 0 && ca.isDown(MoveUp) && !cd.has('wallRun') && cd.has('recentlyOnGround') && xr < 0.2 && level.isRUSlope(cx, cy)
+			&& !level.hasCollision(cx, cy - 1) && level.hasCollision(cx - 1, cy - 1)) {
+			v.dy = -M.fabs(v.dx) * 1.5;
+			spr.rotation = (90 / 180 * M.PI);
+			spr.x -= 4;
+			v.dx = 0;
+			xr = 0.2;
+			cd.setMs('wallRun', 2000);
+		} else if (xr < 0.2 && level.hasCollision(cx - 1, cy)) {
 			if (!level.isRUSlope(cx, cy) && !level.isRUSlope2(cx, cy)) {
 				xr = 0.2;
 				vBump.dx = 0;
@@ -151,7 +213,12 @@ class SamplePlayer extends Entity {
 
 			if (level.hasCollision(cx - 1, cy - 1)) {
 				xr = 0.2;
-				if (!cd.has('recentlyOnGround') && ca.isDown(MoveLeft) && ca.isDown(Jump) && !cd.has('wallJump')) {
+				if (game.level.isValid(cx - 1, cy)
+					&& !cd.has('recentlyOnGround')
+					&& (!cd.has('wallRun') ? ca.isDown(MoveLeft) : ca.isDown(MoveRight))
+					&& ca.isDown(Jump)
+					&& !cd.has('wallJump')
+					&& canWallJump) {
 					cd.setMs('wallJump', 250);
 					fx.wallDust(attachX, attachY, dir, 0xffffff);
 					v.dx = 0.62;
@@ -161,29 +228,25 @@ class SamplePlayer extends Entity {
 			}
 		}
 
-		// Slope LU
-		if (yr > 1 - xr && level.isLUSlope(cx, cy)) {
-			yr = 1 - xr;
-			// onPosManuallyChangedY();
-			cd.setS("recentlyOnGround", 0.1);
-		}
-
-		// Slope RU
-		if (xr < yr && level.isRUSlope(cx, cy)) {
-			yr = xr;
-			// onPosManuallyChangedY();
-			cd.setS("recentlyOnGround", 0.1);
-		}
-
 		// slope LU2
 		if (yr > 1 - xr / 2 && level.isLUSlope2(cx, cy)) {
 			yr = 1 - xr / 2;
+			spr.rotation = -(22.5 / 180 * M.PI);
+			// onPosManuallyChangedY();
+			cd.setS("recentlyOnGround", 0.1);
+		}
+		// slope LU3
+		if (yr > 1 - xr / 3 && level.isLUSlope3(cx, cy)) {
+			yr = 1 - xr / 3;
+			trace('slope LU3');
+			spr.rotation = -(11.25 / 180 * M.PI);
 			// onPosManuallyChangedY();
 			cd.setS("recentlyOnGround", 0.1);
 		}
 		// slope RU2
 		if (yr >= xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx + 1, cy)) {
 			yr = xr / 2;
+			spr.rotation = (22.5 / 180 * M.PI);
 			cd.setS("recentlyOnGround", 0.1);
 		} else if (yr >= 0.5 + xr / 2 && level.isRUSlope2(cx, cy) && level.isRUSlope2(cx - 1, cy)) {
 			yr = 0.5 + xr / 2;
@@ -197,11 +260,17 @@ class SamplePlayer extends Entity {
 		if (cd.has('recentlyOnGround') && level.hasCollision(cx + dir, cy) && !level.hasCollision(cx + dir, cy - 1) && yr <= 0.3) {
 			yr = 0;
 		}
+		if (v.dy >= 0 && yr >= 0.9 && level.hasLedge(cx, cy + 1)) {
+			yr = 1;
+			v.dy = 0;
+			cd.setS("recentlyOnLedge", 0.1);
+			cd.setS("recentlyOnGround", 0.1);
+		}
 		// Slope LU
 		if (yr >= 1 - xr && level.isLUSlope(cx, cy)) {
 			v.dx -= v.dy * 0.015;
-			vBump.dx -= 0.00185 * 0.5;
-			vBump.dy += 0.00185 * 0.25;
+			vBump.dx -= 0.00185 * 1.25;
+			vBump.dy += 0.00185 * 1.25;
 			yr = 1 - xr;
 			// v.dy=0;
 			// onPosManuallyChangedY();
@@ -227,11 +296,30 @@ class SamplePlayer extends Entity {
 			cd.setS("recentlyOnGround", 0.1);
 		}
 
+		// Slope LU3
+		if (yr >= 1 - xr / 3 && level.isLUSlope3(cx, cy) && level.isLUSlope3(cx + 1, cy)) {
+			v.dx -= v.dy * 0.015;
+			vBump.dx -= 0.00185;
+			vBump.dy += 0.00185;
+			yr = 1 - xr / 3;
+			// v.dy=0;
+			// onPosManuallyChangedY();
+			cd.setS("recentlyOnGround", 0.1);
+		} else if (yr >= 0.5 - xr / 3 && level.isLUSlope3(cx, cy) && level.isLUSlope3(cx - 1, cy)) {
+			v.dx -= v.dy * 0.015;
+			vBump.dx -= 0.00185;
+			vBump.dy += 0.00185;
+			yr = 0.5 - xr / 3;
+			// v.dy=0;
+			// onPosManuallyChangedY();
+			cd.setS("recentlyOnGround", 0.1);
+		}
+
 		// Slope RU
 		if (yr >= xr && level.isRUSlope(cx, cy)) {
 			v.dx += v.dy * 0.015;
-			vBump.dx += 0.00185 * 0.5;
-			vBump.dy += 0.00185 * 0.25;
+			vBump.dx += 0.00185 * 1.25;
+			vBump.dy += 0.00185 * 1.25;
 			yr = xr;
 			// v.dy=0;
 			// onPosManuallyChangedY();
@@ -279,6 +367,7 @@ class SamplePlayer extends Entity {
 			vBump.dy = 0;
 			yr = 1;
 			ca.rumble(0.2, 0.06);
+			spr.rotation = (0);
 			onPosManuallyChangedY();
 			fx.fallDust(attachX, attachY, dirToAng(), dir);
 		}
@@ -327,11 +416,18 @@ class SamplePlayer extends Entity {
 			}
 		}
 		fx.lazer(centerX, centerY, dir, d * Const.GRID, 0.04, 0xff0000, lazerAngle);
+		if (!cd.has('lazerSound')) {
+			S.lazer().play(false, App.ME.options.volume).pitchRandomly(0.14);
+			cd.setMs('lazerSound', 600);
+		}
 	}
 
 	public function doFire() {
-		cd.setMs('firing', 150);
-		new sample.Bullet(cx, cy - 1, dir, this);
+		if (canNinja) {
+			cd.setMs('firing', 150);
+			new sample.Bullet(cx, cy - 1, dir, this);
+			S.atk01().play(false, App.ME.options.volume).pitchRandomly(0.14);
+		}
 	}
 
 	override function preUpdate() {
@@ -339,9 +435,12 @@ class SamplePlayer extends Entity {
 
 		walkSpeed = 0;
 		jumpSpeed = 0;
-		jumpTime = (Std.int(xp) * 0.01);
+		jumpTime = (Std.int(xp) * 0.1);
 		if (onGround) {
 			cd.setS("recentlyOnGround", 0.1); // allows "just-in-time" jumps
+		}
+		if (cd.has('recentlyOnLedge') && ca.isDown(MoveDown) && ca.isDown(Jump)) {
+			cd.setMs("stompDown", 100);
 		}
 
 		if (ca.isDown(MoveDown)) {
@@ -356,21 +455,26 @@ class SamplePlayer extends Entity {
 		// burnout
 		if (cd.has('recentlyOnGround') && M.fabs(v.dx) > 0.6 && !cd.has('burn')) { // && !cd.has("recentMove")
 			fx.burnOut(centerX, centerY, getMoveAng(), dir);
-			cd.setS('burn', rnd(0.01, 0.03));
+			cd.setS('burn', rnd(0.01, 0.1));
 		}
 
+		if (ca.isDown(Lock) && ca.isDown(Fire)) {
+			cd.setMs('grappler', 500);
+		}
 		/*if(ca2.isPressed(Jump)){
 			//v.dy=-1;
 			trace("CONTROLLER N°2 PRESSED JUMP");
 		}*/
 		// Jump
-		if (cd.has("recentlyOnGround") && ca.isPressed(Jump)) {
+		if (cd.has("recentlyOnGround") && ca.isPressed(Jump) && jumps < maxJumps && (!ca.isDown(MoveDown) || cd.has('stompDown'))) {
 			if (cd.has("recentlyOnElevator"))
 				v.dy = 0;
 			v.dy = -0.34;
+			jumps++;
 			vBump.dy = 0;
 			jumpSpeed = 0.24;
 			setSquashX(0.9);
+			S.jmp01().play(false, App.ME.options.volume * 0.75).pitchRandomly(0.64);
 			cd.unset("recentlyOnGround");
 			cd.setS("startJumping", 0.33 + jumpTime * 0.08);
 			// fx.dotsExplosionExample(centerX, centerY, 0xffcc00);
@@ -387,10 +491,25 @@ class SamplePlayer extends Entity {
 				jumpSpeed = 0;
 			}
 		}
+		if (cd.has('wasRecentlyInWater') && ca.isPressed(Jump) && !cd.has('swiming') && canSwim == true) {
+			cd.setMs('swiming', 200);
+			v.dy -= 0.35;
+			jumpSpeed = 0.35;
+		}
 
+		if (cd.has('stompDown')) {
+			cd.unset('stompDown');
+			v.dy = 1;
+			cy += 1;
+			cd.unset('recentlyOnGround');
+			cd.unset('recentlyOnLedge');
+			S.dash01().play(false, App.ME.options.volume).pitchRandomly(0.64);
+		}
+		if (cd.has('grappler')) {}
 		// Dash
-		if (ca.isPressed(Dash) && !cd.has('dashing')) {
+		if (ca.isPressed(Dash) && !cd.has('dashing') && canDash) {
 			doDash();
+			S.dash01().play(false, App.ME.options.volume).pitchRandomly(0.64);
 		}
 		if (cd.has('dashing')) {
 			fx.dash(centerX, centerY, v.dx, getMoveAng());
@@ -412,15 +531,19 @@ class SamplePlayer extends Entity {
 		}
 
 		// fire
-		if (ca.isDown(Fire) && !cd.has('firing')) {
+		if (ca.isDown(Fire) && !cd.has('firing') && canNinja) {
 			cd.setMs('firing', 150);
 
 			new sample.Bullet(cx, cy - 1, dir, this);
+			S.atk01().play(false, App.ME.options.volume).pitchRandomly(0.64);
 		}
 		// gameAction lazer
 
-		if (ca.isDown(Lazer)) {
+		if (ca.isDown(Lazer) && canLazer) {
 			doLazer();
+		}
+		if (ca.isDown(Action) || ca.isDown(Lock)) {
+			cd.setMs('recentlyPressedAction', 500);
 		}
 	}
 
@@ -443,11 +566,23 @@ class SamplePlayer extends Entity {
 		/*Game.ME.fadeOut(1, () -> {});
 			Game.ME.destroy();
 		 */
+		setSquashX(0.8);
+		camera.shakeS(2, 0.3);
+		// collides = false;
+
+		bump(-dir * 0.4, -0.15);
+		game.addSlowMo(S_Death, 1, 0.3);
+		game.stopFrame();
+		new page.DeathScreen(App.ME);
 		Game.ME.fx.clear();
 		dn.Process.updateAll(1);
 		game.destroy();
 		hxd.Timer.skip();
-		App.ME.startTitleScreen();
+		/*game.delayer.addS('death', () -> {
+
+		}, 2);*/
+
+		// App.ME.startTitleScreen();
 		// super.onDie();
 		// game.pause();
 	}
@@ -484,7 +619,9 @@ class SamplePlayer extends Entity {
 			v.dx *= 1.056;
 			fx.cloud(spr.x, spr.y + rnd(-16, 16), 0, dir);
 		}
-
+		if (cd.has('recentlyOnGround') || cd.has('recentlyOnElevator') || cd.has('recentlyOnLedge')) {
+			jumps = 0;
+		}
 		/*if(cd.has('glitch')){
 				App.ME.simpleShader.shader.multiplier = Math.sin(cd.getRatio('glitch'))*20;
 			}else{
@@ -509,7 +646,17 @@ class SamplePlayer extends Entity {
 		#end
 		// Gravity
 		if (!onGround && !cd.has('recentlyOnElevator')) {
+			if (cd.has('wallRun')) {
+				v.dy -= cd.getRatio('wallRun') * 0.074;
+				v.dx = 0;
+				if (!ca.isDown(MoveUp))
+					cd.unset('wallRun');
+			}
 			v.dy += 0.074;
+
+			if (!cd.has('wallRun') && !level.isLUSlope(cx, cy) && !level.isRUSlope(cx, cy) && !level.isLUSlope2(cx, cy) && !level.isRUSlope2(cx, cy)) {
+				spr.rotation = 0;
+			}
 		}
 		/*else{
 			v.dx*=0.9;

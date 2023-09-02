@@ -18,12 +18,21 @@ class Assets {
 
 	public static var hero:SpriteLib;
 	public static var boss:SpriteLib;
-	public static var ventilo : SpriteLib;
-	public static var platform : SpriteLib;
-	public static var computer : SpriteLib;
-	public static var door : SpriteLib;
-	public static var normdisp: Bitmap;
+	public static var ventilo:SpriteLib;
+	public static var platform:SpriteLib;
+	public static var computer:SpriteLib;
+	public static var bat:SpriteLib;
+	public static var rat:SpriteLib;
+	public static var door:SpriteLib;
+	public static var chest:SpriteLib;
+	public static var led:SpriteLib;
+	public static var sensor:SpriteLib;
+	public static var tourette:SpriteLib;
+	public static var normdisp:Bitmap;
 	public static var sphereMap:Bitmap;
+	public static var waterfall:Bitmap;
+	public static var introPat:Bitmap;
+	public static var naledition:Bitmap;
 	static var palette:Array<Col> = [];
 
 	/** LDtk world data **/
@@ -39,10 +48,13 @@ class Assets {
 		// Fonts
 		fontPixel = new hxd.res.BitmapFont(hxd.Res.fonts.pixel_unicode_regular_12_xml.entry).toFont();
 		fontPixelMono = new hxd.res.BitmapFont(hxd.Res.fonts.pixica_mono_regular_16_xml.entry).toFont();
-		
+
 		// normal map for displacement
 		normdisp = new h2d.Bitmap(hxd.Res.atlas.normaldisp.toTile());
 		sphereMap = new h2d.Bitmap(hxd.Res.atlas.dispMap.toTile());
+		waterfall = new h2d.Bitmap(hxd.Res.atlas.waterfall.toTile());
+		introPat = new h2d.Bitmap(hxd.Res.atlas.introPat.toTile());
+		naledition = new h2d.Bitmap(hxd.Res.atlas.nal10ansedition.toTile());
 		// Palette
 		var pal = hxd.Res.atlas.sweetie_16_1x.getPixels(ARGB);
 		palette = [];
@@ -58,7 +70,7 @@ class Assets {
 		tiles.defineAnim("fxDuster", "0-2(4)");
 		tiles.defineAnim("fxBurnOut", "0-4(5)");
 		tiles.defineAnim("fxFlame", "0-3(5)");
-		tiles.defineAnim("fxEye","0-3(1),4(4),5(1)");
+		tiles.defineAnim("fxEye", "0-3(1),4(4),5(1)");
 		tiles.defineAnim("fxLazerImpact", "0-2(1)");
 		tiles.defineAnim("breakable", "0-2(1)");
 		tiles.defineAnim("fxRoll", "0-2(1)");
@@ -71,6 +83,12 @@ class Assets {
 		platform = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.platform.toAseprite());
 		computer = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.computer.toAseprite());
 		door = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.door.toAseprite());
+		rat = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.rat.toAseprite());
+		bat = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.bat.toAseprite());
+		chest = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.chest.toAseprite());
+		led = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.led.toAseprite());
+		tourette = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.tourette.toAseprite());
+		sensor = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.sensor.toAseprite());
 		// Hot-reloading of CastleDB
 		#if debug
 		hxd.Res.data.watch(function() {
@@ -113,17 +131,35 @@ class Assets {
 			});
 		#end
 	}
-	public static inline function getCol(idx:Int) : Col {
-		return palette[ M.iclamp(idx,0,palette.length-1) ];
+
+	public static inline function getCol(idx:Int):Col {
+		return palette[M.iclamp(idx, 0, palette.length - 1)];
 	}
-	public static inline function black() return getCol(0);
-	public static inline function dark() return getCol(15);
-	public static inline function white() return getCol(12);
-	public static inline function yellow() return getCol(4);
-	public static inline function green() return getCol(5);
-	public static inline function blue() return getCol(10);
-	public static inline function red() return getCol(2);
-	public static inline function walls() return getCol(17);
+
+	public static inline function black()
+		return getCol(0);
+
+	public static inline function dark()
+		return getCol(15);
+
+	public static inline function white()
+		return getCol(12);
+
+	public static inline function yellow()
+		return getCol(4);
+
+	public static inline function green()
+		return getCol(5);
+
+	public static inline function blue()
+		return getCol(10);
+
+	public static inline function red()
+		return getCol(2);
+
+	public static inline function walls()
+		return getCol(17);
+
 	/**
 		Pass `tmod` value from the game to atlases, to allow them to play animations at the same speed as the Game.
 		For example, if the game has some slow-mo running, all atlas anims should also play in slow-mo
@@ -136,6 +172,14 @@ class Assets {
 		hero.tmod = tmod;
 		boss.tmod = tmod;
 		platform.tmod = tmod;
+		rat.tmod = tmod;
+		bat.tmod = tmod;
+		sensor.tmod = tmod;
+		led.tmod = tmod;
+		tourette.tmod = tmod;
+		chest.tmod = tmod;
+		door.tmod = tmod;
+
 		// <-- add other atlas TMOD updates here
 	}
 }

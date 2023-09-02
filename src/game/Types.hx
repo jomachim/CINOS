@@ -11,6 +11,8 @@ enum abstract GameAction(Int) to Int {
 	var Lazer;
 	var Lock;
 	var Action;
+	var InventoryScreen;
+	var OptionScreen;
 	var Extra;
 	var Restart;
 
@@ -49,6 +51,7 @@ enum LevelBreaks{
 	Breaking;
 	Broken;
 	Die;
+	Door;
 	None;
 }
 
@@ -62,6 +65,10 @@ enum abstract LevelMark(Int) to Int {
 	var M_Coll_Slope_RU2;
 	var M_Coll_Slope_LD2;
 	var M_Coll_Slope_RD2;
+	var M_Coll_Slope_LU3;
+	var M_Coll_Slope_RU3;
+	var M_Coll_Ladder;
+	var M_Coll_Ledge;
 	var M_CHKPT;
 	var M_JUMPER;
 	var M_ICE;
@@ -75,6 +82,7 @@ enum abstract LevelSubMark(Int) to Int {
 
 enum abstract SlowMoId(Int) to Int {
 	var S_Default; // 0
+	var S_Death;
 }
 
 enum abstract ChargedAction(Int) to Int {
