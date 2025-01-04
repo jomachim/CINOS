@@ -69,6 +69,7 @@ class Jem extends Entity {
 				game.player.initLife(game.player.maxLife);
 			}else if(type == 3){
 				game.player.lazerCoolDownTime+=0.5;
+				game.player.maxJumps++;
 			}
 			initLife(0);
 			destroy();

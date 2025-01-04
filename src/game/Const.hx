@@ -49,12 +49,12 @@ class Const {
 			if (Game.ME.level != null) {
 				//var min=M.fmax(200,M.fmax(200,Game.ME.level.pxHei*Game.ME.level.pxWid/GRID/4));
 				//return dn.heaps.Scaler.bestFit_i(Game.ME.level.pxHei,Game.ME.level.pxWid,1280,720);
-				var bestWid=M.fmax(420,Game.ME.level.pxWid);
-				var bestHei=M.fmax(420,Game.ME.level.pxHei);
+				var bestWid=M.fmax(320,Game.ME.level.pxWid);
+				var bestHei=M.fmax(320,Game.ME.level.pxHei);
 				var bigger=M.fmax(bestWid,bestHei);
 				var smaller=M.fmin(bestWid,bestHei);
-				var best=M.fmax(480,smaller);
-				return dn.heaps.Scaler.bestFit_i(best/(Game.ME.w()/GRID)*(420/GRID),best/(Game.ME.h()/GRID)*(420/GRID),Game.ME.w(),Game.ME.h());
+				var best=M.fmax(320,smaller);
+				return dn.heaps.Scaler.bestFit_i(best/(Game.ME.stageWid/GRID)*(320/GRID),best/(Game.ME.stageHei/GRID)*(320/GRID),Game.ME.stageWid,Game.ME.stageHei);
 				//return dn.heaps.Scaler.bestFit_i(Game.ME.level.pxWid,Game.ME.level.pxHei,1280,720);
 			}
 			return dn.heaps.Scaler.bestFit_i(256,256);

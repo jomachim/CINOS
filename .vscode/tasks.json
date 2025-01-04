@@ -14,12 +14,21 @@
                 "$haxe-trace"
             ],
             "presentation": {
-                "reveal": "never",
+                "reveal": "never"
             },
+            "group": "build"
+        },
+        {
+            "type": "hxml",
+            "file": "build.opengl.hxml",
+            "problemMatcher": [
+                "$haxe-fake"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-        },
+            "label": "hxml: build.opengl.hxml"
+        }
     ]
 }

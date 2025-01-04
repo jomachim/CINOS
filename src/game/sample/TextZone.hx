@@ -55,7 +55,7 @@ class TextZone extends Entity {
 		var g = new h2d.Graphics(spr);
 		wid = d.width;
 		hei = d.height;
-		label.y = hei*0.5;
+		label.y = 0;
 		label.x = wid*0.5;
 		#if debug
 		#end

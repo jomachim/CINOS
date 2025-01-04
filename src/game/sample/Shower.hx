@@ -8,6 +8,8 @@ class Shower extends Entity {
 	public var data:Entity_Shower;
 	public var color:Col;
 	public var activated:Bool;
+	public var lastX:Float;
+	public var lastY:Float;
 
 	public function new(shower:Entity_Shower) {
 		super(5, 5);
@@ -42,9 +44,10 @@ class Shower extends Entity {
 		}
 		if (activated == true && !cd.has('shower')) {
 			cd.setMs('shower',60);
-			for (i in 0...2) {
+			for (i in 0...10) {
 				game.delayer.addMs('boomer', () -> {
-					fx.embers(attachX + rnd(-3, 3, true), attachY + 8+rnd(-3, 3, true), color,1);
+					fx.waterFlow(attachX + rnd(-3, 3, true), attachY + 8+rnd(-3, 3, true), color,1);
+					//fx.embers(attachX + rnd(-3, 3, true), attachY + 8+rnd(-3, 3, true), color,1);
 				}, i * rnd(i + 10, 50));
 			}
 		}

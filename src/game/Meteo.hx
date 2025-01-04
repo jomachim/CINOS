@@ -9,6 +9,7 @@ import h2d.Object;
         Cloudy;
         Stormy;
         Night;
+        Windy;
 }
 class Meteo extends h2d.Object{
    

@@ -1,3 +1,4 @@
+import sample.Fish;
 import dn.heaps.filter.Crt;
 import sample.Rat;
 import page.InventoryPage;
@@ -34,18 +35,33 @@ import sample.Portal;
 import sample.Boss;
 import sample.Breakable;
 import sample.Craft;
+import sample.Flower;
 import GameStats;
 import eng.GC;
 import ui.MiniMap;
 import dn.Delayer;
+import Internet;
 
 typedef Savable = {
 	var niveau:Int;
 	var currentLevel:String;
 }
 
+typedef Score = {
+	var name:String;
+	var score:Int;
+	var ip:String;
+}
+
+typedef HighScoreData = {
+	var scores:Array<Score>;
+}
+
+
 class Game extends AppChildProcess {
 	public static var ME:Game;
+
+	public var httpInstance:haxe.Http;
 
 	/** hscript parser **/
 	public var hsParser:hscript.Parser = new hscript.Parser();
@@ -54,6 +70,8 @@ class Game extends AppChildProcess {
 
 	/** Game controller (pad or keyboard) **/
 	public var ca:ControllerAccess<GameAction>;
+
+	public var ca2:ControllerAccess<GameAction>;
 
 	public var baseZoom:Float = 0.5;
 
@@ -67,13 +85,19 @@ class Game extends AppChildProcess {
 	public var camera:Camera;
 
 	/** Container of all visual game objects. Ths wrapper is moved around by Camera. **/
+	public var fog:sample.FogFilter;
 	public var scroller:h2d.Layers;
+	public var globalWind:Vector;
 
 	public var frontScroller:h2d.Layers;
+	public var parallaxScroller:h2d.Layers;
 	public var displaceLayer:h2d.Layers;
 	public var fxScene:h2d.Scene;
 
+	public var waterGraphics:h2d.Graphics;
+
 	public var chrono:h2d.Text;
+	public var chronometre:String;
 	public var miniMap:MiniMap;
 
 	/** Level data **/
@@ -114,14 +138,26 @@ class Game extends AppChildProcess {
 	public var healthFlask:ui.Flask;
 	public var crafts:Array<String>;
 	public var muz:dn.heaps.Sfx;
+	public var highscore:Array<haxe.DynamicAccess<Dynamic>> = [];
 
 	public function new() {
 		super();
 
 		ME = this;
+		chronometre = "";
+		globalWind=new Vector();
+		Internet.getHighScore();
+
+		/*var req = new Http( "http://myserver.com/api/userinfo/" );
+			req.setParameter( "userID", "34" );
+			req.setParameter( "includeFriendList", "true" );
+			req.request( false ); // false=GET, true=POST */
 
 		ca = App.ME.controller.createAccess();
 		ca.lockCondition = isGameControllerLocked;
+		ca2 = App.ME.controller.createAccess();
+		ca2.lockCondition = isGameControllerLocked;
+
 		normalTexture = new h3d.mat.Texture(engine.width, engine.height, [Target]);
 		colorTexture = new h3d.mat.Texture(engine.width, engine.height, [Target]);
 
@@ -131,11 +167,15 @@ class Game extends AppChildProcess {
 		meteo = new Meteo();
 		scroller = new h2d.Layers();
 		frontScroller = new h2d.Layers();
+		parallaxScroller = new h2d.Layers();
 		displaceLayer = new h2d.Layers();
 		fxScene = new h2d.Scene();
-		Const.timeAccumulator=0;
+		Const.timeAccumulator = 0;
+		root.add(parallaxScroller, Const.DP_BG);
 		root.add(scroller, Const.DP_BG);
+		waterGraphics = new h2d.Graphics();
 		scroller.add(frontScroller, Const.DP_FRONT);
+		scroller.add(waterGraphics, Const.DP_FRONT);
 
 		tile = new h2d.Bitmap(Tile.fromTexture(colorTexture));
 		root.add(tile, Const.DP_FX_FRONT);
@@ -154,21 +194,26 @@ class Game extends AppChildProcess {
 		// normalShader.mp = new Vector(0, 0, 0,0);
 		// normalShader.normal = normalTexture;
 		// normalShader.texture = normalTexture;
-		motionBlur = new MotionBlur(8);
+		motionBlur = new MotionBlur(2);
 		// displaceLayer.filter=new dn.heaps.filter.Invert();
-		scroller.filter = new h2d.filter.Group([App.ME.disp, new h2d.filter.Nothing(), new h2d.filter.Bloom()]); // App.ME.simpleShader, ,App.ME.colorFilter,motionBlur force rendering for pixel perfect
-		frontScroller.filter = new h2d.filter.Nothing(); // new h2d.filter.Group([new h2d.filter.Nothing(),new h2d.filter.Bloom(1.9, 1.2, 16, 1.1)]);
+		scroller.filter = new h2d.filter.Group([App.ME.disp]); // , ,App.ME.colorFilter,motionBlur force rendering for pixel perfect
+		frontScroller.filter = new h2d.filter.Group([new h2d.filter.Nothing()]);// new h2d.filter.Nothing(); 
 		/*root.drawTo(colorTexture);
 			tile=new h2d.Bitmap(Tile.fromTexture(colorTexture),root);//
 			displaceLayer.addChild(tile);
 			scroller.add(displaceLayer, Const.DP_FRONT); */
 
 		fxScene = new h2d.Scene();
-		fxScene.getScene().filter = new h2d.filter.Bloom();
+		//fxScene.getScene().filter = new h2d.filter.Bloom();
 		root.addChild(fxScene);
 		scroller.add(displaceLayer, Const.DP_FRONT);
 		// fxScene.addChild(displaceLayer);
 		// displaceLayer.visible=false;
+
+		fog = new sample.FogFilter();
+		scroller.filter = new h2d.filter.Group([App.ME.disp,fog,new h2d.filter.Bloom(1.5,1.5,1.5,0.5)]);
+		
+		//frontScroller.filter = fog;
 		fx = new Fx();
 		hud = new ui.Hud();
 		camera = new Camera();
@@ -226,7 +271,6 @@ class Game extends AppChildProcess {
 			#end
 			player = new sample.SamplePlayer();
 			// player.spr.addShader(normalShader);
-			
 		}
 		/*miniMap=new MiniMap(hud.root);
 			miniMap.containerMask.scale(1); */
@@ -276,9 +320,9 @@ class Game extends AppChildProcess {
 			canNinja: player.canNinja,
 			canSwim: player.canSwim
 		};
+		var options = App.ME.options;
 		var sav = {
 			niveau: level.data.iid,
-			volume: App.ME.options.volume,
 			currentLevel: currentLevel,
 			currentLevelID: currentLevelIdentifyer,
 			currentWorldID: currentWorldIdentifyer,
@@ -286,8 +330,13 @@ class Game extends AppChildProcess {
 			achievements: achievs,
 			playerPosition: playerPos,
 			skills: skills,
-			inventory: player.inventory
+			options: options,
+			volume: App.ME.options.volume,
+			inventory: player.inventory,
+			chrono: chronometre,
 		};
+		// Internet.postHighScore();
+		Internet.postSave(haxe.Serializer.run(sav)); //
 		/*
 			playedTime: dat.getDate()
 			+ '_'
@@ -462,6 +511,8 @@ class Game extends AppChildProcess {
 		if (level != null)
 			level.destroy();
 		fx.clear();
+		waterGraphics.removeChildren();
+		App.ME.resetFilters();
 		for (e in Entity.ALL) // <---- Replace this with more adapted entity destruction (eg. keep the player alive)
 			e == player?continue:e.destroy();
 		garbageCollectEntities();
@@ -475,6 +526,14 @@ class Game extends AppChildProcess {
 
 		// <---- Here: instanciate your level entities
 
+		for (bush in level.data.l_Probs.all_Flower){
+			new Flower(bush);
+		}
+
+		for (fan in level.data.l_Entities.all_Ventilo){
+			new sample.Ventilo(fan);
+		}
+		
 		for (wat in level.data.l_Entities.all_Water) {
 			new sample.WaterPond(wat);
 		}
@@ -514,9 +573,18 @@ class Game extends AppChildProcess {
 		for (rat in level.data.l_Entities.all_Rat) {
 			new Rat(rat);
 		}
+
+		for (fish in level.data.l_Entities.all_Fish) {
+			new Fish(fish);
+		}
+
 		for (bat in level.data.l_Entities.all_Bat) {
 			new Bat(bat);
 		}
+		/*for (flower in level.data.l_Entities.all_Flower) {
+			new Flower(flower);
+		}*/
+
 		for (chest in level.data.l_Entities.all_Chest) {
 			new Chest(chest);
 		}
@@ -538,6 +606,19 @@ class Game extends AppChildProcess {
 		for (s in level.data.l_Entities.all_Shower) {
 			new sample.Shower(s);
 		}
+		for (b in level.data.l_Entities.all_Blob) {
+			new sample.Blob(b);
+		}
+		for (t in level.data.l_Entities.all_HtmlZone) {
+			new sample.HtmlZone(t);
+		}
+		for (t in level.data.l_Entities.all_FallingStone) {
+			new sample.FallingStone(t);
+		}
+		for (t in level.data.l_Entities.all_Emiter) {
+			new sample.Emiter(t);
+		}
+
 		fadeIn(0.25);
 		camera.centerOnTarget();
 
@@ -677,8 +758,8 @@ class Game extends AppChildProcess {
 			displaceLayer.drawTo(colorTexture);
 			tile.tile = Tile.fromTexture(colorTexture);
 			App.ME.disp.normalMap = Tile.fromTexture(colorTexture);
-			displaceLayer.alpha=0;
-			//displaceLayer.alpha = 0;
+			displaceLayer.alpha = 0;
+			// displaceLayer.alpha = 0;
 		}
 		if (cd.has('areYouWaiting')) {
 			cd.setS('areYouWaiting', 0.1);
@@ -686,6 +767,7 @@ class Game extends AppChildProcess {
 				// cm.signal('pressed');
 			}
 		}
+
 		if (cd.has("shake")) {
 			var r = cd.getRatio("shake");
 			root.y = Math.sin(ftime * 10) * r * 2 * Const.SCALE;
@@ -700,10 +782,9 @@ class Game extends AppChildProcess {
 	override function postUpdate() {
 		super.postUpdate();
 
-		if (App.ME.options.shaders == true) {
-			
-		}
-
+		if (App.ME.options.shaders == true) {}
+		parallaxScroller.x = -player.attachX * 0.25;
+		parallaxScroller.y = -player.attachY * 0.25;
 		// currentFrame++;
 		// Update slow-motions
 		updateSlowMos();
@@ -714,7 +795,8 @@ class Game extends AppChildProcess {
 		Assets.computer.tmod = tmod;
 		Assets.platform.tmod = tmod;
 		Assets.door.tmod = tmod;
-
+		//App.ME.fog.updateTime(currentFrame);
+		//trace("fog update :"+fog.shader.time);
 		hud.healthFlask.refresh(player.life, player.maxLife);
 
 		if (player.isAlive()) {
@@ -744,23 +826,106 @@ class Game extends AppChildProcess {
 	/** Main loop but limited to 30 fps (so it might not be called during some frames) **/
 	override function fixedUpdate() {
 		super.fixedUpdate();
+		//fog.updateTime(0.2);
 		currentFrame++;
-		App.ME.fadeToBlack.shader.threshold=Math.sin(currentFrame/3600);
-		if (rnd(0, 1000000) < 10) {
+		App.ME.fadeToBlack.shader.threshold = Math.sin(currentFrame / 3600);
+		// fx.starField(camera.centerX,camera.centerY,0xffffff);
+		// fx.starField(player.attachX,player.attachY,0xffffff);
+		// WATER LEVEL counts & draw
+		if (!cd.has('waterLevel')) {
+			cd.setS('waterLevel', 0.25);
+			waterGraphics.clear();
+			waterGraphics.removeChildren();
+			// waterGraphics.x=scroller.x;
+			// waterGraphics.y=scroller.y;
+			for (cy in 0...level.cHei) {
+				for (cx in 0...level.cWid) {
+					var count = level.levelWaterCountMap.get(level.coordId(cx, cy));
+					if (count > 0 && !level.waterMarks.has(WaterLevel, cx, cy + 1) && !level.hasCollision(cx, cy + 1)) {
+						level.waterMarks.set(WaterLevel, cx, cy + 1);
+						level.levelWaterCountMap.set(level.coordId(cx, cy + 1), 17);
+					}
+
+					/*if(count>=16 && level.levelWaterCountMap.get(level.coordId(cx, cy-1))<17){
+						var wl=level.levelWaterCountMap.get(level.coordId(cx, cy-1));
+						level.levelWaterCountMap.set(level.coordId(cx, cy-1),wl++);
+
+					}*/
+					/*if(count>4 && level.levelWaterCountMap.get(level.coordId(cx, cy+1))<16 && !level.hasCollision(cx,cy)){
+						var wl=level.levelWaterCountMap.get(level.coordId(cx, cy+1));
+						level.levelWaterCountMap.set(level.coordId(cx, cy+1),16);
+
+					}*/
+
+					if (count > 0
+						&& !level.waterMarks.has(WaterLevel, cx - 1, cy)
+						&& level.hasCollision(cx - 1, cy)
+						&& !level.hasCollision(cx - 1, cy - 1)) {
+						level.waterMarks.set(WaterLevel, cx - 1, cy);
+						level.levelWaterCountMap.set(level.coordId(cx - 1, cy), 1);
+					}
+					if (count > 0
+						&& !level.waterMarks.has(WaterLevel, cx + 1, cy)
+						&& level.hasCollision(cx + 1, cy)
+						&& !level.hasCollision(cx + 1, cy - 1)) {
+						level.waterMarks.set(WaterLevel, cx + 1, cy);
+						level.levelWaterCountMap.set(level.coordId(cx + 1, cy), 1);
+					}
+
+					if (count > 0 && level.levelWaterCountMap.get(level.coordId(cx - 1, cy)) < count) {
+						var wl = level.levelWaterCountMap.get(level.coordId(cx - 1, cy));
+						level.levelWaterCountMap.set(level.coordId(cx - 1, cy), wl++);
+						count -= 0.5;
+					}
+					if (count > 0 && level.levelWaterCountMap.get(level.coordId(cx + 1, cy)) < count) {
+						var wl = level.levelWaterCountMap.get(level.coordId(cx + 1, cy));
+						level.levelWaterCountMap.set(level.coordId(cx + 1, cy), wl++);
+						count -= 0.5;
+					}
+					if (level.levelWaterCountMap.get(level.coordId(cx, cy - 1)) > 0 && !level.hasCollision(cx, cy)) {
+						count = 17;
+					}
+					if (count != null && count > 0) {
+						level.levelWaterCountMap.set(level.coordId(cx, cy), M.fmax(0, count -= 0.5));
+						var wg = new h2d.Graphics(waterGraphics);
+						wg.x = cx * Const.GRID; //*Const.SCALE;
+						wg.y = cy * Const.GRID; //*Const.SCALE;
+						wg.beginFill(0x0088ff, 0.8);
+						wg.drawRect(0, 16, 16, -M.fmin(16, count));
+						count = null;
+					}
+				}
+			}
+		}
+
+		if (rnd(0, 1000) < 10) {
 			meteo.state = [Rainning, Sunny, Snowing][irnd(0, 2)];
+			meteo.state=Snowing;
 		}
 		if (meteo.state == Snowing && !cd.has("snowing")) {
 			var rain = Std.int(rnd(0, level.pxWid / Const.GRID) * 0.5);
-			cd.setMs('snowing', rain * 1000);
-			for (i in 0...rain)
-				fx.snow(rnd(0, level.pxWid), -16, 0x91bde4, i % 4 == 0, rnd(0.01, 0.5));
+			cd.setMs('snowing', rain * 10);
+			for (i in 0...rain*10){
+				fx.snow(rnd(0, scroller.x+level.pxWid), rnd(0, scroller.y+level.pxHei),globalWind, 0x91bde4, i % 4 == 0, rnd(0.01, 0.5));	
+				//fx.embers(rnd( scroller.x+0,  scroller.x+level.pxWid), rnd( scroller.y+0,  scroller.y+level.pxHei),  0xabfcff,1);
+			}
+				
 		}
 
-		var minutes = M.floor((Const.CHRONO / 1000)/ 60);
-		var seconds = M.floor((Const.CHRONO / 1000)%60);
-		var millis = M.floor(Const.CHRONO%1000);
-		chrono.text = "Time : " + (minutes<10?'0'+minutes:''+minutes) + ':' + (seconds<10?'0'+seconds:''+seconds) + ':' + (millis<10?'00'+millis:millis<100?'0'+millis:''+millis);
-
+		var minutes = M.floor((Const.CHRONO / 1000) / 60);
+		var seconds = M.floor((Const.CHRONO / 1000) % 60);
+		var millis = M.floor(Const.CHRONO % 1000);
+		chrono.text = "Time : "
+			+ (minutes < 10 ? '0' + minutes : '' + minutes)
+			+ ':'
+			+ (seconds < 10 ? '0' + seconds : '' + seconds)
+			+ ':'
+			+ (millis < 10 ? '00' + millis : millis < 100 ? '0' + millis : '' + millis);
+		chronometre = (minutes < 10 ? '0' + minutes : '' + minutes)
+			+ ':'
+			+ (seconds < 10 ? '0' + seconds : '' + seconds)
+			+ '.'
+			+ (millis < 10 ? '00' + millis : millis < 100 ? '0' + millis : '' + millis);
 		// scroller.drawTo(normalTexture);
 		// Entities "30 fps" loop
 		for (e in Entity.ALL)
@@ -771,7 +936,16 @@ class Game extends AppChildProcess {
 	/** Main loop **/
 	override function update() {
 		super.update();
-		if(App.ME.options.shaders==true){
+		globalWind.x=Math.cos(currentFrame*0.01)/180*Math.PI;
+		globalWind.y=Math.sin(currentFrame*0.01)/180*Math.PI;
+		var windX=rnd(-10,10,true)*0.0001;
+		var windY=rnd(-10,10,true)*0.0001;
+		player.vBump.add(-globalWind.x*0.1,0);
+		fog.updateTime(0.16,globalWind.x,globalWind.y,0x44778B,Math.sin(globalWind.x));
+		fx.cloud(rnd(0,stageWid),rnd(0,stageHei));
+		if (App.ME.options.shaders == true) {
+			//App.ME.fog.shader.mousePos.set(App.ME.mousePos.x,App.ME.mousePos.y);
+			
 			
 		}
 		// App.ME.disp.normalMap.scrollDiscrete(-0.1+player.v.dx,0.2+player.v.dy);

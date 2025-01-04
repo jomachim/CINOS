@@ -1,5 +1,6 @@
 package page;
 
+import hxd.Event;
 import hxd.res.Sound;
 import hxd.Key;
 import h2d.Scene;
@@ -18,6 +19,7 @@ class TitleScreen extends AppChildProcess {
 	public static var ME:TitleScreen;
 
 	public var ca:ControllerAccess<GameAction>;
+	public var ca2:ControllerAccess<GameAction>;
 
 	var bgCol:h2d.Bitmap;
 	var bg:h2d.Bitmap;
@@ -54,13 +56,16 @@ class TitleScreen extends AppChildProcess {
 	public var simpleShader:SimpleShader;
 	public var glow:h2d.filter.Glow;
 
+	public var pseudo:String="kariboo84";
+	public var pseudo_inp:h2d.TextInput;
+
 	var menuIndex:Int = 0;
 
 	function showOptions() {
 		trace("showing options");
 	}
 
-	var menuOptions:Array<Dynamic> = [
+	public var menuOptions:Array<Dynamic> = [
 		{option: "Start New Game", cb: null},
 		{option: "Load saved Game", cb: null},
 		{option: "Options", cb: null},
@@ -92,27 +97,41 @@ class TitleScreen extends AppChildProcess {
 		g.tile=pat;
 		g.tileWrap=true;
 		g.beginTileFill(0,0,4,4,pat);
-		g.drawRect(0, 8, w(), h());
+		g.drawRect(0, 8, stageWid, stageHei);
 		root.add(g, Const.DP_BG);
 		pool = new dn.heaps.HParticle.ParticlePool(Assets.tiles.tile, 2048, Const.FPS);
 		engine.backgroundColor = 0x000000;
 		cm = new dn.Cinematic(Const.FPS);
 		ca = App.ME.controller.createAccess();
+		ca2 = App.ME.controller.createAccess();
 		cd = new dn.Cooldown(getDefaultFrameRate());
 		appearSfx = S.exp02();
 		zik = S.intro();
 		versionNumber = new h2d.Text(Assets.fontPixel);
 		versionNumber.text = "Version: " + Const.BUILD_INFO; // "Version: 0.0.1";
 		versionNumber.x = 4;
-		versionNumber.y = h() - 24;
+		versionNumber.y = stageHei - 24;
 		root.add(versionNumber, Const.DP_UI);
 		bgCol = new h2d.Bitmap(h2d.Tile.fromColor(Col.inlineHex('0xEA9502'))); // hxd.Res.atlas.title.bg.toTile());
 		bgCol.alpha=0.5;
 		root.add(bgCol, Const.DP_MAIN);
 		cd.setS('introCountDown',59);
 
-		
-
+		pseudo_inp=new h2d.TextInput(hxd.res.DefaultFont.get());
+		pseudo_inp.scale(2);
+		pseudo_inp.inputWidth=100;
+		pseudo_inp.onKeyDown=function(e:Event){
+			if(e.keyCode==13 && pseudo_inp.text!=""){
+				trace('logged as '+pseudo_inp.text);
+				App.ME.pseudo=pseudo_inp.text;
+			}
+		}
+		pseudo_inp.focus();
+		pseudo_inp.x=stageWid*0.5;
+		pseudo_inp.y=stageHei*0.5;
+		pseudo_inp.textColor=0x000000;
+		pseudo_inp.backgroundColor=0xffffff;	
+		root.add(pseudo_inp, Const.DP_FRONT);
 		// wallNormals = new Bitmap(hxd.Res.atlas.wallNormal.toTile());
 		// wallNormals.blendMode=Add;
 		// wallNormals.alpha=0.8;
@@ -192,7 +211,7 @@ class TitleScreen extends AppChildProcess {
 			"DONT PLAY VIDEO GAMES"
 		];
 		pressStart.text = citations[irnd(0, citations.length - 1)];
-
+		
 		nothing = new h2d.filter.Nothing(); // force rendering for pixel perfect
 		simpleShader = new sample.SimpleShader(20.0);
 		glow = new h2d.filter.Glow(0x2b2ba9, 0.8, 3, 1, 2);
@@ -336,8 +355,8 @@ class TitleScreen extends AppChildProcess {
 			root.add(bt, Const.DP_UI);
 			bt.filter = menuIndex != 0 ? nothing : glow;
 			bt_txt.text = m.option;
-			bt.x = w() * 0.7;
-			bt.y = h() * 0.6 + 24 * i;
+			bt.x = stageWid * 0.7;
+			bt.y = stageHei * 0.6 + 24 * i;
 
 			bt.onRelease = (e) -> {
 				if (m.cb != null)
@@ -372,7 +391,8 @@ class TitleScreen extends AppChildProcess {
 		pat.scrollDiscrete(1,1);
 		g.clear();
 		g.beginTileFill(0,0,8,8,pat);
-		g.drawRect(0, 0, w(), h());
+		g.drawRect(0, 0, stageWid, stageHei);
+		
 	}
 
 	override function onResize() {
@@ -380,12 +400,12 @@ class TitleScreen extends AppChildProcess {
 
 		for (i in 0...bts.length) {
 			var bt = bts[i];
-			bt.x = w() * 0.7;
-			bt.y = h() * 0.6 + 24 * i;
+			bt.x = stageWid * 0.7;
+			bt.y = stageHei * 0.6 + 24 * i;
 		}
 
-		bgCol.scaleX = w();
-		bgCol.scaleY = h();
+		bgCol.scaleX = stageWid;
+		bgCol.scaleY = stageHei;
 
 		upscale = dn.heaps.Scaler.bestFit_i(titleHead.tile.height, titleHead.tile.height * 2); // only height matters
 		// box.setScale(upscale);
@@ -401,18 +421,18 @@ class TitleScreen extends AppChildProcess {
 		fxNormal.setScale(upscale);
 		fxAddMultiply.setScale(upscale);
 		pressStart.setScale(upscale);
-		pressStart.setPosition(Std.int(w() * 0.5 - pressStart.textWidth * 0.5 * pressStart.scaleX),
-			Std.int(h() * 0.82 - pressStart.textHeight * 0.5 * pressStart.scaleY));
+		pressStart.setPosition(Std.int(stageWid * 0.5 - pressStart.textWidth * 0.5 * pressStart.scaleX),
+			Std.int(stageHei * 0.82 - pressStart.textHeight * 0.5 * pressStart.scaleY));
 
-		// box.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		// bg.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		// wallNormals.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		// wallColors.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		// wallGloss.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		// logo.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.5));
-		titleHead.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.25));
-		cinos.setPosition(Std.int(w() * 0.5), Std.int(h() * 0.65));
-		nal.setPosition(Std.int(w() * 0.05), Std.int(h() * 0.05));
+		// box.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		// bg.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		// wallNormals.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		// wallColors.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		// wallGloss.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		// logo.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.5));
+		titleHead.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.25));
+		cinos.setPosition(Std.int(stageWid * 0.5), Std.int(stageHei * 0.65));
+		nal.setPosition(Std.int(stageWid * 0.05), Std.int(stageHei * 0.05));
 	}
 
 	inline function allocAdd(id:String, x:Float, y:Float):HParticle {
@@ -452,8 +472,8 @@ class TitleScreen extends AppChildProcess {
 			var introScene=new page.IntroPage(App.ME);
 		}
 		if (ready && !cd.hasSetS("fx", 0.03)) {
-			var w = w() / upscale;
-			var h = h() / upscale;
+			var w = stageWid / upscale;
+			var h = stageHei / upscale;
 			// Black smoke
 			for (i in 0...4) {
 				var xr = rnd(0, 1);
@@ -532,9 +552,9 @@ class TitleScreen extends AppChildProcess {
 			// logo.setScale(upscale + s);
 			s *= 0.9;
 		});
-		if (zik.isPlaying())
+		if (zik.isPlaying()){
 			zik.stopWithFadeOut(1);
-
+		}
 		fadeOut(1, () -> {
 			destroy();
 			App.ME.startGame();
@@ -547,6 +567,7 @@ class TitleScreen extends AppChildProcess {
 	override function onDispose() {
 		super.onDispose();
 		ca.dispose();
+		ca2.dispose();
 		zik.dispose();
 		appearSfx.dispose();
 		zik = null;
@@ -567,6 +588,13 @@ class TitleScreen extends AppChildProcess {
 
 	override function update() {
 		super.update();
+		for(p in App.ME.pads){
+			if(p.connected){
+				if(p.index>0){
+					trace("new challenger joins the game ! "+p.name);
+				}
+			}
+		}
 		// wallColors.drawTo(tex1); // .tile.getTexture()
 		// wallNormals.visible=true;
 		// wallNormals.drawTo(tex);
@@ -577,14 +605,14 @@ class TitleScreen extends AppChildProcess {
 		if (ca.isKeyboardDown(Key.T)) {
 			// trace(Std.string(norm.mp));
 		}
-		if (ca.isDown(MoveDown) && !cd.has('select')) {
+		if ((ca.isDown(MoveDown)) && !cd.has('select')) {
 			cd.setS('select', 0.15);
 			menuIndex++;
 			if (menuIndex > menuOptions.length - 1) {
 				menuIndex = 0;
 			}
 		}
-		if (ca.isDown(MoveUp) && !cd.has('select')) {
+		if ((ca.isDown(MoveUp))  && !cd.has('select')) {
 			cd.setS('select', 0.15);
 			menuIndex--;
 			if (menuIndex < 0) {
@@ -612,7 +640,9 @@ class TitleScreen extends AppChildProcess {
 				menuOptions[menuIndex].cd = skip;
 			}*/
 			if (menuOptions[menuIndex].cb != null) {
-				menuOptions[menuIndex].cb();
+				mcbs[menuIndex]();
+				//menuOptions[menuIndex].cb();
+
 				ca.lock();
 			}
 			// skip();

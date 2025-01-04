@@ -11,6 +11,12 @@ class Boot extends hxd.App {
 	// Shortcut to controller
 	var ca(get,never) : ControllerAccess<GameAction>;
 		inline function get_ca() return App.ME.ca;
+
+	var ca2(get,never) : ControllerAccess<GameAction>;
+		inline function get_ca2() return App.ME.ca2;
+
+	var pads(get,never): Array<hxd.Pad>;
+		inline function get_pads() return App.ME.pads;
 	#end
 
 

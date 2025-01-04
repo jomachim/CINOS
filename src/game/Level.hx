@@ -1,3 +1,4 @@
+import h2d.filter.Nothing;
 import dn.heaps.Sfx;
 import dn.Gc;
 import h2d.filter.Group;
@@ -48,6 +49,8 @@ class Level extends GameChildProcess {
 	public var marks:dn.MarkerMap<LevelMark>;
 	public var breakables:tools.MarkerMap<Types.LevelBreaks>;
 	public var tags:dn.MarkerMap<LevelMark>;
+	public var waterMarks:tools.MarkerMap<Types.LevelWaterMark>;
+	public var levelWaterCountMap : Map<Int,Float> = new Map();
 
 	public var cinema:dn.Cinematic;
 	public var script:Dynamic;
@@ -60,7 +63,7 @@ class Level extends GameChildProcess {
 		super();
 		cinema = new dn.Cinematic(Const.FPS);
 		norm = new NormalShader();
-		bloom = new Bloom(4, 4, 2, 2, 2);
+		bloom = new Bloom(1, 1, 1, 1, 1);
 		createRootInLayers(Game.ME.scroller, Const.DP_BG);
 		data = ldtkLevel;
 		cWid = data.l_Collisions.cWid;
@@ -80,6 +83,8 @@ class Level extends GameChildProcess {
 					game.muz = S.melomusic();
 				case "aquaticMusic":
 					game.muz = S.aquaticmusic();
+				case "arena":
+					game.muz = S.arena();
 				case _:
 					game.muz = S.gamebasemusic();
 			}
@@ -135,6 +140,9 @@ class Level extends GameChildProcess {
 		marks = new dn.MarkerMap(cWid, cHei);
 		breakables = new tools.MarkerMap(cWid, cHei);
 		tags = new dn.MarkerMap(cWid, cHei);
+		waterMarks = new tools.MarkerMap(cWid, cHei);
+		levelWaterCountMap = new Map();
+		
 
 		for (cy in 0...cHei)
 			for (cx in 0...cWid) {
@@ -158,6 +166,11 @@ class Level extends GameChildProcess {
 						// trace("ICE !!!");
 						// trace("tile ID ? : " + tile);
 						tags.set(M_SWIRL, cx, cy);
+					}
+					if (data.l_Tiles.tileset.hasTag(tile.tileId, assets.Enum_TileEnum.Spikes)) { // 587
+						// trace("SPIKES !!!");
+						// trace("tile ID ? : " + tile);
+						tags.set(M_SPIKES, cx, cy);
 					}
 				}
 				if (data.l_Collisions.getInt(cx, cy) == 1)
@@ -195,6 +208,8 @@ class Level extends GameChildProcess {
 		tags = null;
 		breakables.dispose();
 		breakables = null;
+		waterMarks.dispose();
+		waterMarks= null;
 		Gc.runNow();
 	}
 
@@ -238,6 +253,9 @@ class Level extends GameChildProcess {
 
 	public inline function hasSwirl(cx, cy):Bool {
 		return tags.has(M_SWIRL, cx, cy);
+	}
+	public inline function hasSpikes(cx, cy):Bool {
+		return tags.has(M_SPIKES, cx, cy);
 	}
 
 	/** Return true for slope type "Collisions" layer contains a collision value **/
@@ -290,13 +308,18 @@ class Level extends GameChildProcess {
 		var backlayer = data.l_BackTiles;
 		backlayer.render(tgb);
 		// App.ME.colorFilter.shader.passed=rnd(0,1);
-		// tgb.filter=new Group([App.ME.disp]); // bloom;
-		var para = new h2d.TileGroup(tilesetSource, root);
+		//tgb.filter=new Group([Game.ME.fog]); // bloom,;
+		game.parallaxScroller.removeChildren();
+		var para = new h2d.TileGroup(tilesetSource, game.parallaxScroller);
+		para.scale(1.5*Const.SCALE);
+		//para.x-=pxWid*0.15;
+		//para.y-=pxHei*0.15;
 		var paralayer = data.l_ParallaxTiles;
 		paralayer.render(para);
 
 		var tg = new h2d.TileGroup(tilesetSource, root);
 		var layer = data.l_Collisions;
+		tg.filter=new h2d.filter.Outline(0.5);//Game.ME.fog;
 		layer.render(tg);
 
 		/*var al = new h2d.TileGroup(tilesetSource, root);
@@ -316,6 +339,7 @@ class Level extends GameChildProcess {
 		tileLayer.render(ftg);
 		// front deco
 		var dg = new h2d.TileGroup(decoTileSetSource, game.frontScroller);
+		//dg.filter=new Group([Game.ME.fog]); 
 		var decoLayer = data.l_Tiles;
 		decoLayer.render(dg);
 	}

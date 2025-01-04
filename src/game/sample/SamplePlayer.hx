@@ -11,11 +11,12 @@ import hxd.snd.openal.AudioTypes.BufferHandle;
 **/
 class SamplePlayer extends Entity {
 	public var ca:ControllerAccess<GameAction>;
+	public var ca2:ControllerAccess<GameAction>;
 
-	// public var ca2:ControllerAccess<GameAction>;
 	var walkSpeed = 0.;
 	var jumpSpeed = 0.;
 
+	public var scoreFinal:Int = 0;
 	public var jumps:Int = 0;
 	public var maxJumps:Int = 1;
 
@@ -100,13 +101,13 @@ class SamplePlayer extends Entity {
 		hud.setLife(life, maxLife);
 		// Camera tracks this
 		camera.trackEntity(this, true);
-		camera.zoomTo(1);
+		camera.zoomTo(game.baseZoom);
 		camera.clampToLevelBounds = true;
 		camera.setTrackingSpeed(4);
 
 		// Init controller
 		ca = App.ME.controller.createAccess();
-		// ca2 = App.ME.controller2.createAccess();
+		ca2 = App.ME.controllerB.createAccess();
 
 		ca.lockCondition = Game.isGameControllerLocked;
 		// ca2.lockCondition = Game.isGameControllerLocked;
@@ -135,6 +136,11 @@ class SamplePlayer extends Entity {
 	override function dispose() {
 		super.dispose();
 		ca.dispose(); // don't forget to dispose controller accesses
+		ca2.dispose();
+		if (grappleGraphics != null) {
+			grappleGraphics.remove();
+			grappleGraphics = null;
+		}
 	}
 
 	/** X collisions **/
@@ -432,7 +438,7 @@ class SamplePlayer extends Entity {
 
 	override function preUpdate() {
 		super.preUpdate();
-
+		// App.ME.fog.updateTime(0.16);
 		walkSpeed = 0;
 		jumpSpeed = 0;
 		jumpTime = (Std.int(xp) * 0.1);
@@ -461,15 +467,18 @@ class SamplePlayer extends Entity {
 		if (ca.isDown(Lock) && ca.isDown(Fire)) {
 			cd.setMs('grappler', 500);
 		}
-		/*if(ca2.isPressed(Jump)){
-			//v.dy=-1;
-			trace("CONTROLLER N°2 PRESSED JUMP");
-		}*/
+		if (ca2.isPressed(Jump)) {
+			//v.dy = -1;
+			// trace("CONTROLLER N°2 PRESSED JUMP");
+		}
+		/**/
 		// Jump
 		if (cd.has("recentlyOnGround") && ca.isPressed(Jump) && jumps < maxJumps && (!ca.isDown(MoveDown) || cd.has('stompDown'))) {
-			if (cd.has("recentlyOnElevator"))
+			if (cd.has("recentlyOnElevator")) {
 				v.dy = 0;
+			}
 			v.dy = -0.34;
+			if(maxJumps>1){maxJumps--;}
 			jumps++;
 			vBump.dy = 0;
 			jumpSpeed = 0.24;
@@ -529,7 +538,16 @@ class SamplePlayer extends Entity {
 			if (onGround)
 				v.dy = 0;
 		}
+		// grapple
+		if (ca.isPressed(Action)) {
+			// Lancer le grappin vers la position du curseur
+			var mousePos = App.ME.mousePos;
+			shootGrapple(mousePos.x, mousePos.y);
+		}
 
+		if (ca.isReleased(Action)) {
+			releaseGrapple();
+		}
 		// fire
 		if (ca.isDown(Fire) && !cd.has('firing') && canNinja) {
 			cd.setMs('firing', 150);
@@ -598,6 +616,37 @@ class SamplePlayer extends Entity {
 
 	override function fixedUpdate() {
 		super.fixedUpdate();
+		if (ca2.anyPadButtonDown()) {
+			// trace("GAMEPAD B TRIGGERED");
+			ca = ca2;
+		}
+
+		if (isGrappling) {
+			// Physique du pendule
+			var gravity = 0.01; // Ajustez selon vos besoins
+			var dampening = 0.99; // Facteur d'amortissement
+
+			// Calculer l'accélération angulaire
+			var accelerationAngle = -gravity * Math.sin(grappleAngle) / grappleLength;
+
+			// Mettre à jour la vitesse angulaire
+			grappleVelocity += accelerationAngle * tmod;
+			grappleVelocity *= dampening;
+
+			// Mettre à jour l'angle
+			grappleAngle += grappleVelocity * tmod;
+
+			// Calculer la nouvelle position
+			var newX = grapplingPointX - Math.cos(grappleAngle) * grappleLength;
+			var newY = grapplingPointY - Math.sin(grappleAngle) * grappleLength;
+
+			// Mettre à jour la position de l'entité
+			setPosPixel(newX, newY);
+
+			// Mettre à jour les graphiques du grappin
+			drawGrapple();
+		}
+
 		if (game.camera.target == null) {
 			game.camera.trackEntity(this, true, 1.0);
 		}
@@ -612,6 +661,14 @@ class SamplePlayer extends Entity {
 			// trace('jumper');
 			cd.setMs('jumper', 100);
 			v.dy -= 1.7;
+		}
+		if (level.hasSpikes(cx, cy) && yr > 0.5 && !cd.has('spiked')) {
+			// trace('jumper');
+			cd.setMs('spiked', 1200);
+			v.dy -= 0.7;
+			S.ouch04(App.ME.options.volume);
+			fx.flashBangEaseInS(Red, 0.4, 1);
+			hit(1, null);
 		}
 		if (level.hasIce(cx, cy + 1) && !cd.has('ice')) {
 			// trace('ICE !');
@@ -684,6 +741,12 @@ class SamplePlayer extends Entity {
 		if (spr.anim.getAnimId() == "roll") {
 			spr.anim.setSpeed(M.fabs(v.dx) * 8);
 		}
+	}
+
+	override function postUpdate() {
+		super.postUpdate();
+		grappleGraphics.x = Game.ME.scroller.x * Const.SCALE;
+		grappleGraphics.y = Game.ME.scroller.y * Const.SCALE;
 	}
 
 	override function frameUpdate() {

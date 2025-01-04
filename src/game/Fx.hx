@@ -136,7 +136,7 @@ class Fx extends GameChildProcess {
 
 	/* obsolete : texture.clear(0x8888ff,1) do the trick :) */
 	public inline function fillZeroNormal(x:Float = 0.0, y:Float = 0.0) {
-		var p = pool.alloc(displacer_normal, Tile.fromColor(0x8888ff, w(), h(), 1.0), x, y);
+		var p = pool.alloc(displacer_normal, Tile.fromColor(0x8888ff, stageWid,stageHei, 1.0), x, y);
 		p.lifeS = 0.1;
 	}
 
@@ -224,8 +224,8 @@ class Fx extends GameChildProcess {
 		if (game.player.life > 0) {
 			var e = new h2d.Bitmap(h2d.Tile.fromColor(c, 1, 1, a));
 			game.root.add(e, Const.DP_FX_FRONT);
-			e.scaleX = game.w();
-			e.scaleY = game.h();
+			e.scaleX = game.stageWid;
+			e.scaleY = game.stageHei;
 			e.blendMode = Add;
 			game.tw.createS(e.alpha, 0 > 1, 0.1).end(() -> game.tw.createS(e.alpha, 0, t).end(e.remove));
 		}
@@ -236,14 +236,14 @@ class Fx extends GameChildProcess {
 			var p = allocMain_add(D.tiles.fxStar, x + rnd(0, 4, true), y + rnd(0, 4, true));
 			p.setFadeS(1, 0.1, 0.4);
 			p.colorize(color);
-			p.lifeS = 0.5;
-			p.frict = 0.8;
-			p.scaleMul = 0.999;
+			p.lifeS = 0.4;
+			p.frict = 0.9;
+			p.scaleMul = 0.99;
 			p.rotation = rnd(0, 2 * M.PI);
 			p.scale = 1;
 
 			p.delayCallback((p) -> {
-				p.moveAwayFrom(x, y, 4);
+				p.moveAwayFrom(x, y, 5);
 				/*p.delayCallback((p) -> {
 					p.moveTo(game.player.centerX, game.player.centerY, 4);
 				}, 0.5);*/
@@ -326,8 +326,8 @@ class Fx extends GameChildProcess {
 	public inline function flashBangS(c:Col, a:Float, t = 0.1) {
 		var e = new h2d.Bitmap(h2d.Tile.fromColor(c, 1, 1, a));
 		game.root.add(e, Const.DP_FX_FRONT);
-		e.scaleX = game.w();
-		e.scaleY = game.h();
+		e.scaleX = game.stageWid;
+		e.scaleY = game.stageHei;
 		e.blendMode = Add;
 		game.tw.createS(e.alpha, 0, t).end(function() {
 			e.remove();
@@ -397,16 +397,61 @@ class Fx extends GameChildProcess {
 			explosion(p.x, p.y, 1, 0xff0000, 1);
 	}
 
-	public inline function embers(x:Float, y:Float, col:Col = 0xff5500,dirY:Float=-1) {
+	public inline function crap(x:Float, y:Float, col:Col = 0x882200, dir = -1) {
 		var n = irnd(5, 20);
+		for (i in 0...n) {
+			var p = allocMain_normal(D.tiles.fxDirt2, x, y);
+			p.colorize(col, rnd(0, 1));
+			p.colorAnimS(col, 0x4B1204, rnd(0.6, 3));
+			p.dx = 0.75 * rnd(-2, 2);
+			p.dy = dir * rnd(0.5, 2);
+			p.gy = 0.15;
+			p.lifeS = 2;
+			p.dr = rnd(0.1, 0.4, true);
+			// p.frict = rnd(0.99, 0.99);
+			p.setScale(rnd(0.1, 2));
+			p.delayS = i * 0.02 * rnd(0., 0.1, true);
+			p.onUpdate = _emberPhysics;
+		}
+	}
+
+	public inline function waterFlow(x:Float, y:Float, col:Col = 0x004cff, dirY:Float = -1) {
+		var n = irnd(1, 5);
+		for (i in 0...n) {
+			var p = allocMain_add(D.tiles.fxDot0, x, y);
+			p.colorize(col, rnd(0, 1));
+			p.colorAnimS(col, 0x0ADCFC, rnd(0.6, 3));
+			p.dx = 0.75 * rnd(-2, 2);
+			p.dy = dirY * rnd(0.5, 2);
+			p.gy = 0.1;
+			p.lifeS = 6;
+			p.dr = rnd(0.1, 0.4, true);
+			// p.frict = rnd(0.99, 0.99);
+			p.setScale(rnd(0.1, 2));
+			p.delayS = i * 0.02 * rnd(0., 0.1, true);
+			p.data0 = p.x;
+			p.data1 = p.y;
+			p.onUpdate = _waterFlowPhysics;
+			/*p.groundY=y;
+				p.onTouchGround=function(o:HParticle){
+					o.dy*=-1;
+					o.dx=rnd(-0.5,0.5);
+			}*/
+		}
+	}
+
+	public inline function embers(x:Float, y:Float, col:Col = 0xff5500, dirY:Float = -1) {
+		var n = irnd(5, 10);
 		for (i in 0...n) {
 			var p = allocMain_add(D.tiles.fxDot0, x, y);
 			p.colorize(col, rnd(0, 1));
 			p.colorAnimS(col, 0xF1F65B, rnd(0.6, 3));
 			p.dx = 0.75 * rnd(-2, 2);
-			p.dy = dirY*rnd(0.5, 2);
+			p.dy = dirY * rnd(0.5, 2);
 			p.gy = 0.1;
 			p.lifeS = 2;
+			p.data0 = p.x;
+			p.data1 = p.y;
 			p.dr = rnd(0.1, 0.4, true);
 			// p.frict = rnd(0.99, 0.99);
 			p.setScale(rnd(0.1, 2));
@@ -421,19 +466,94 @@ class Fx extends GameChildProcess {
 	}
 
 	function _emberPhysics(p:HParticle) {
+		p.rotation = Math.atan2(p.y - p.data1, p.x - p.data0);
+		p.scaleX = Math.abs(p.dy) * 0.15 * M.dist(p.x, p.y, p.data0, p.data1);
 		if (collides(p)) {
 			p.dx *= Math.pow(rnd(0.8, 0.9), tmod);
 			p.dy = 0;
 			p.gy = 0;
 			p.dr *= Math.pow(0.8, tmod);
-			p.lifeS = 0;
+			p.lifeS = 0.5;
 		}
 		if (!collides(p) && (collides(p, 1, 0) || collides(p, -1, 0))) {
-			p.dx = -p.dx * 0.99;
+			p.dx = -p.dx * 0.35;
 			p.dr *= -1;
 		}
+		if (!collides(p) && (collides(p, 0, 1) || collides(p, 0, -1))) {
+			p.dy = -Math.abs(p.dy) * 0.35;
+		}
+		p.data0 = p.x;
+		p.data1 = p.y;
 	}
 
+	function _waterFlowPhysics(p:HParticle) {
+		p.rotation = Math.atan2(p.y - p.data1, p.x - p.data0);
+		p.scaleX = Math.abs(p.dy) * 0.5 * M.dist(p.x, p.y, p.data0, p.data1);
+		if (collides(p)) {
+			p.dx *= Math.pow(rnd(0.8, 0.9), tmod);
+			p.dy = 0;
+			p.gy = 0;
+			p.dr *= Math.pow(0.8, tmod);
+			p.lifeS = 1.5;
+		}
+		if (!collides(p) && (collides(p, 1, 0) || collides(p, -1, 0))) {
+			p.dx = -p.dx * 0.35;
+			p.dr *= -1;
+		}
+		if (!collides(p) && (collides(p, 0, 1) || collides(p, 0, -1))) {
+			p.lifeS = 1.5;
+			p.dy = -Math.abs(p.dy) * 0.35;
+			if(!level.hasCollision(Std.int(p.x/Const.GRID),Std.int((p.y)/Const.GRID))){
+				if(level.waterMarks.has(WaterLevel,Std.int(p.x/Const.GRID),Std.int((p.y)/Const.GRID))){
+					var count=level.levelWaterCountMap.get(level.coordId(Std.int(p.x/Const.GRID),Std.int((p.y)/Const.GRID)));
+					count+=0.6;
+					count=M.fmin(17,count);
+
+					level.levelWaterCountMap.set(level.coordId(Std.int(p.x/Const.GRID),Std.int((p.y)/Const.GRID)),count);
+					count=null;
+
+				}else{
+					level.waterMarks.set(WaterLevel,Std.int(p.x/Const.GRID),Std.int((p.y)/Const.GRID));
+				}
+				
+			}
+		}
+		p.data0 = p.x;
+		p.data1 = p.y;
+	}
+
+	public inline function starField(x:Float, y:Float, col:Col = 0x004cff, dirY:Float = -1) {
+		var n = irnd(1, 10);
+		for (i in 0...n) {
+			var p = allocBg_add(D.tiles.fxDot0, x, y);
+			p.colorize(col, rnd(0, 1));
+			p.colorAnimS(col, 0x0ADCFC, rnd(0.6, 3));
+			var rand=rnd(0,360);
+			var speed=rnd(0.1,10);
+			p.dx = speed*Math.cos(rand);
+			p.dy = speed*Math.sin(rand);
+			p.gy = 0.0;
+			p.lifeS = 0.15;
+			//p.dr = rnd(0.1, 0.4, true);
+			// p.frict = rnd(0.99, 0.99);
+			p.setScale(rnd(0.1, 2));
+			p.delayS = i * 0.02 * rnd(0., 0.1, true);
+			p.data0 = p.x;
+			p.data1 = p.y;
+			p.onUpdate = _starFieldPhysics;
+			/*p.groundY=y;
+				p.onTouchGround=function(o:HParticle){
+					o.dy*=-1;
+					o.dx=rnd(-0.5,0.5);
+			}*/
+		}
+	}
+	function _starFieldPhysics(p:HParticle) {
+		p.rotation = Math.atan2(p.y - p.data1, p.x - p.data0);
+		p.scaleX = Math.abs(p.dy) * 10 * M.dist(p.x, p.y, p.data0, p.data1);
+		p.data0 = p.x;
+		p.data1 = p.y;
+	}
 	public inline function flame(x:Float, y:Float, color:Col = 0xf58500) {
 		var p = allocMain_add(D.tiles.fxFlame, x, y);
 		p.scale = rnd(0.1, 1);
@@ -475,7 +595,8 @@ class Fx extends GameChildProcess {
 		p.scale = 0.5;
 		p.alpha = 0.01;
 		// p.lifeS = 0.4;
-		p.gx = rnd(-0.02, 0.02); // gravity Y (added on each frame)
+		p.gx = rnd(-0.02, 0.02);
+		p.gy = rnd(-0.02,0.02); // gravity Y (added on each frame)
 		p.lifeS = rnd(2, 3);
 		p.setFadeS(0.1, rnd(0.1, 2), 0.1);
 	}
@@ -531,17 +652,17 @@ class Fx extends GameChildProcess {
 		var p = allocMain_add(D.tiles.waveSplash, x, y);
 		p.colorize(col, rnd(0, 1));
 		p.colorAnimS(col, 0xFDFDF2, rnd(0.6, 3));
-		p.lifeS=0.3;
+		p.lifeS = 0.3;
 		p.setFadeS(0.8, 0.01, 0.2);
-		p.gy=0;
-		p.x=x;
-		p.y=y+8;
-		p.scaleY*=rnd(1,2);
-		p.scaleYMul=1.02;
-		p.scaleXMul=0.98;
-		if(up){
-			p.y-=16;
-			p.scaleY*=-1;
+		p.gy = 0;
+		p.x = x;
+		p.y = y + 8;
+		p.scaleY *= rnd(1, 2);
+		p.scaleYMul = 1.02;
+		p.scaleXMul = 0.98;
+		if (up) {
+			p.y -= 16;
+			p.scaleY *= -1;
 		}
 	}
 
@@ -626,7 +747,7 @@ class Fx extends GameChildProcess {
 	}
 
 	// snow
-	public inline function snow(x:Float, y:Float, ?color:UInt = 0xD1F1F4, ?front:Bool = true, ?size:Float = 0.5) {
+	public inline function snow(x:Float, y:Float,wind:{x:Float,y:Float}, ?color:UInt = 0xD1F1F4, ?front:Bool = true, ?size:Float = 0.5) {
 		for (i in 0...1) {
 			var p;
 			if (front == false) {
@@ -638,19 +759,22 @@ class Fx extends GameChildProcess {
 			p.alpha = rnd(0.1, 1);
 			p.colorize(color, 1);
 			// p.scaleMul=0.99;
-			p.scale = rnd(0.1, 0.25);
+			p.scale = rnd(0.01, 0.35);
 			p.rotation = rnd(0, 180);
 			// p.colorAnimS(color, 0xffffff, 0.1); // fade particle color from given color to some purple
 			// p.fadeIn(0.5,1);
-			p.frict = 0; // friction applied to velocities
+			p.frict = rnd(0,0.9); // friction applied to velocities
 			var vy = rnd(0.25, 1);
 			p.gy = vy; // gravity Y (added on each frame)
-			var vx = rnd(-0.2, 0.2, true);
+			var vx = wind.x+rnd(-0.2, 0.2, true);
 			p.lifeS = 5; // life time in seconds
 			p.setFadeS(0.9, 0.1, 0.5);
 			p.dx = vx;
 			p.gx = vx;
 			p.dy = 0.2;
+			p.onUpdate=function(p){
+				p.dx=p.gx=-wind.x*50;
+			}
 			// p.scaleY = vy;
 			// p.autoRotate(vy*0.05);
 

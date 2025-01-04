@@ -48,16 +48,16 @@ class IntroPage extends dn.Process {
 		racine.add(bgCol, Const.DP_MAIN);
 		pressStart = new Text(Assets.fontPixel, racine);
 		warning = new Text(Assets.fontPixel, racine);
-		warning.color = new h3d.Vector(1, 0, 0);
+		warning.color = new h3d.Vector4(1, 0, 0);
 		warning.textAlign = Align.Center;
-		warning.x = w() * 0.5;
-		warning.y = h() * 0.5;
+		warning.x = stageWid * 0.5;
+		warning.y = stageHei * 0.5;
 		pressStart.text = "";
 		pressStart.textAlign = Align.Center;
 		pressStart.x = 0;
 		rect = new h2d.Graphics(racine);
 		rect.beginFill(Black, 1.0);
-		rect.drawRect(0, 0, w(), h());
+		rect.drawRect(0, 0, stageWid, stageHei);
 		// racine.under(rect);
 		rect.x = 0;
 		rect.alpha = 0;
@@ -128,7 +128,7 @@ class IntroPage extends dn.Process {
 
 	override function onResize() {
 		super.onResize();
-		upscale = dn.heaps.Scaler.bestFit_i(w() * 0.5, h() * 0.5); // only height matters
+		upscale = dn.heaps.Scaler.bestFit_i(stageWid * 0.5, stageHei * 0.5); // only height matters
 		pressStart.setScale(upscale);
 		warning.setScale(upscale);
 	}

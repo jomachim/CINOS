@@ -3,7 +3,8 @@ _base.hxml
 -D windowTitle=Cinos a lick to the paste
 -hl bin/client.hl
 -lib hldx
+-lib hlopenal
 -D analyzer-optimize
--D hl-ver=1.11.0
+-D hl-ver=1.14.0
 #-D hlgen.makefile=vs2019
 #-hl ../bin/tmp/client.c

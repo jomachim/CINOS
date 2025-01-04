@@ -1,9 +1,7 @@
 import h2d.filter.Bloom;
-
 /**
 	"App" class takes care of all the top-level stuff in the whole application. Any other Process, including Game instance, should be a child of App.
 **/
-
 import h2d.Tile;
 import h3d.shader.ScreenShader;
 import sample.ColorFilter;
@@ -22,16 +20,25 @@ class App extends dn.Process {
 	/** Used to create "ControllerAccess" instances that will grant controller usage (keyboard or gamepad) **/
 	public var controller:Controller<GameAction>;
 
+	public var controllerB:Controller<GameAction>;
+
 	/** Controller Access created for Main & Boot **/
 	public var ca:ControllerAccess<GameAction>;
+
+	public var ca2:ControllerAccess<GameAction>;
+
+	public var pads:Array<hxd.Pad> = [];
+
 	/** If TRUE, game is paused, and a Contrast filter is applied **/
 	public var screenshotMode(default, null) = true;
 
 	public static var windowInst:hxd.Window;
 
 	// saves
+	public var pseudo:String = "kariboo84";
 	public var savegames:hxd.Save;
 	public var simpleShader:sample.SimpleShader;
+	public var fog:sample.FogFilter;
 	public var fadeToBlack:sample.FadeToBlackShader;
 	public var crt:dn.heaps.filter.Crt;
 	public var disp:h2d.filter.Displacement;
@@ -40,7 +47,12 @@ class App extends dn.Process {
 	public var colorShader:h3d.shader.ScreenShader;
 	public var filterGroup:h2d.filter.Group;
 	public var currentSavedGame = null;
-	public var options = {volume: 1, gain:0.5, difficulty: 1, shaders: false};
+	public var options = {
+		volume: 1,
+		gain: 0.15,
+		difficulty: 1,
+		shaders: false
+	};
 	public var colorTexture:h3d.mat.Texture;
 
 	public function new(s:h2d.Scene) {
@@ -55,7 +67,7 @@ class App extends dn.Process {
 		initEngine();
 		initAssets();
 		initController();
-
+		//scene.rotation=22/180*Math.PI;
 		// Create console (open with [²] key)
 		new ui.Console(Assets.fontPixelMono, scene); // init debug console
 
@@ -80,18 +92,20 @@ class App extends dn.Process {
 		fadeToBlack = null;
 		colorFilter = null;
 		filterGroup = null;
-		bloom = new h2d.filter.Bloom(0.125,0.125,8,0.125,3);
+		fog=null;
+		bloom = new h2d.filter.Bloom(0.125, 0.125, 8, 0.125, 3);
 		disp = new h2d.filter.Displacement(Assets.normdisp.tile, 8, 8, true); // Tile.fromColor(0x00ff00,engine.width,engine.height)
-		simpleShader = new sample.SimpleShader(1.0);
-		simpleShader.shader.multiplier = 2;
+		simpleShader = new sample.SimpleShader(1.8);
+		simpleShader.shader.multiplier = 2.5;
+		fog = new sample.FogFilter();
 		fadeToBlack = new sample.FadeToBlackShader(1.0);
-		fadeToBlack.shader.threshold=0.5;
-		crt=new dn.heaps.filter.Crt();
-			/*colorFilter=new ColorFilter();
+		fadeToBlack.shader.threshold = 0.5;
+		crt = new dn.heaps.filter.Crt();
+		/*colorFilter=new ColorFilter();
 			colorFilter.shader.passed=rnd(0.0,1.0);
-			colorFilter=new h2d.filter.Shader<ColorFilter>(new ColorFilter(),"texture"); */
+			colorFilter=new h3d.filter.Shader<ColorFilter>(new ColorFilter(),"texture"); */
 		if (options.shaders == true) {
-			filterGroup = new h2d.filter.Group([crt,simpleShader]); //colorFilter ,bloom
+			filterGroup = new h2d.filter.Group([crt, simpleShader]); // colorFilter,fog ,bloom
 			root.getScene().filter = filterGroup;
 		} else {
 			root.getScene().filter = new h2d.filter.Group([simpleShader]);
@@ -127,7 +141,8 @@ class App extends dn.Process {
 	}
 
 	function onMouseMove(e:hxd.Event) {
-		mousePos = new Vector(e.relX, e.relY, e.relZ, 0);
+		mousePos = new h3d.Vector(e.relX, e.relY, e.relZ);
+		
 		// trace(Std.string(mousePos));
 	}
 
@@ -184,10 +199,10 @@ class App extends dn.Process {
 				root.removeChildren();
 			}
 			// Fresh start
-			delayer.addF(() -> {
+			delayer.nextFrame(() -> {
 				_createTitleScreenInstance();
 				hxd.Timer.skip();
-			}, 1);
+			});
 		}
 	}
 
@@ -203,10 +218,10 @@ class App extends dn.Process {
 			hxd.Timer.skip();
 		} else {
 			// Fresh start
-			delayer.addF(() -> {
+			delayer.nextFrame(() -> {
 				_createGameInstance();
 				hxd.Timer.skip();
-			}, 1);
+			});
 		}
 	}
 
@@ -313,11 +328,32 @@ class App extends dn.Process {
 
 	/** Init game controller and default key bindings **/
 	function initController() {
+		trace('pad init');
 		controller = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
+		controllerB = dn.heaps.input.Controller.createFromAbstractEnum(GameAction);
 		ca = controller.createAccess();
+		// ca.createDebugger(App.ME);
 		ca.lockCondition = () -> return destroyed || anyInputHasFocus();
 
+		ca2 = controller.createAccess();
+		// ca2.createDebugger(App.ME);
+		ca2.lockCondition = () -> return destroyed || anyInputHasFocus();
+
 		initControllerBindings();
+
+		/*controller.onConnect = (p) -> {
+			trace(p);
+			pads.push(ca.input.pad);
+			trace("pad A connected " + ca.input.pad.name);
+			trace('controller to string :' + controller.toString());
+			trace(pads);
+		};
+		controllerB.onConnect = (p) -> {
+			pads.push(ca.input.pad);
+			trace(pads);
+			trace("pad B connected " + ca.input.pad.name);
+			trace('controllerB to string :' + controllerB.toString());
+		};*/
 	}
 
 	public function initControllerBindings() {
@@ -350,7 +386,7 @@ class App extends dn.Process {
 			controller.bindPad(MenuCancel, B); */
 
 		// Keyboard bindings
-		controller.bindKeyboard(MoveLeft, [K.LEFT, K.Q, K.A]);
+		controller.bindKeyboard(MoveLeft, [K.LEFT, K.Q]);
 		controller.bindKeyboard(MoveRight, [K.RIGHT, K.D]);
 		controller.bindKeyboard(MoveUp, [K.UP, K.Z, K.W]);
 		controller.bindKeyboard(MoveDown, [K.DOWN, K.S]);
@@ -384,6 +420,72 @@ class App extends dn.Process {
 		controller.bindPadCombo(ToggleDebugDrone, [LSTICK_PUSH, RSTICK_PUSH]);
 		controller.bindKeyboardCombo(ToggleDebugDrone, [K.D, K.CTRL, K.SHIFT]);
 		#end
+		/**
+		 * controllerB
+		 */
+		controllerB.removeBindings();
+
+		// Gamepad bindings
+		controllerB.bindPadLStick4(MoveLeft, MoveRight, MoveUp, MoveDown);
+
+		controllerB.bindPad(Jump, A);
+		controllerB.bindPad(Dash, B);
+		controllerB.bindPad(Fire, X);
+		controllerB.bindPad(Lazer, Y);
+		controllerB.bindPadCombo(Action, [RT, X]);
+
+		controllerB.bindPad(Lock, RT);
+		controllerB.bindPadCombo(Extra, [LT, LB]);
+		controllerB.bindPad(InventoryScreen, LSTICK_PUSH);
+		controllerB.bindPad(InventoryScreen, RSTICK_PUSH);
+		controllerB.bindPad(Restart, SELECT);
+		controllerB.bindPad(Pause, START);
+
+		controllerB.bindPad(MoveLeft, DPAD_LEFT);
+		controllerB.bindPad(MoveRight, DPAD_RIGHT);
+		controllerB.bindPad(MoveUp, DPAD_UP);
+		controllerB.bindPad(MoveDown, DPAD_DOWN);
+
+		/*controllerB.bindPad(MenuUp, [DPAD_UP, LSTICK_UP]);
+			controllerB.bindPad(MenuDown, [DPAD_DOWN, LSTICK_DOWN]);
+			controllerB.bindPad(MenuOk, [A, X]);
+			controllerB.bindPad(MenuCancel, B); */
+
+		// Keyboard bindings
+		controllerB.bindKeyboard(MoveLeft, [K.LEFT, K.Q]);
+		controllerB.bindKeyboard(MoveRight, [K.RIGHT, K.D]);
+		controllerB.bindKeyboard(MoveUp, [K.UP, K.Z, K.W]);
+		controllerB.bindKeyboard(MoveDown, [K.DOWN, K.S]);
+		controllerB.bindKeyboard(Jump, K.SPACE);
+		controllerB.bindKeyboard(Dash, K.ALT);
+		controllerB.bindKeyboard(Fire, K.E);
+		controllerB.bindKeyboard(Lazer, K.F);
+		controllerB.bindKeyboard(Action, K.A);
+		controllerB.bindKeyboard(Lock, K.SHIFT);
+		controllerB.bindKeyboard(Restart, K.R);
+		controllerB.bindKeyboard(ScreenshotMode, K.F9);
+		controllerB.bindKeyboard(Pause, K.P);
+		controllerB.bindKeyboard(Pause, K.PAUSE_BREAK);
+
+		controllerB.bindKeyboard(MenuUp, [K.UP, K.Z, K.W]);
+		controllerB.bindKeyboard(MenuDown, [K.DOWN, K.S]);
+		controllerB.bindKeyboard(MenuOk, [K.SPACE, K.ENTER, K.F]);
+		controllerB.bindKeyboard(MenuCancel, K.ESCAPE);
+
+		// Debug controls
+		#if debug
+		controllerB.bindPad(DebugTurbo, LT);
+		controllerB.bindPad(DebugSlowMo, LB);
+		controllerB.bindPad(DebugDroneZoomIn, RSTICK_UP);
+		controllerB.bindPad(DebugDroneZoomOut, RSTICK_DOWN);
+
+		controllerB.bindKeyboard(DebugDroneZoomIn, K.PGUP);
+		controllerB.bindKeyboard(DebugDroneZoomOut, K.PGDOWN);
+		controllerB.bindKeyboard(DebugTurbo, [K.END, K.NUMPAD_ADD]);
+		controllerB.bindKeyboard(DebugSlowMo, [K.HOME, K.NUMPAD_SUB]);
+		controllerB.bindPadCombo(ToggleDebugDrone, [LSTICK_PUSH, RSTICK_PUSH]);
+		controllerB.bindKeyboardCombo(ToggleDebugDrone, [K.D, K.CTRL, K.SHIFT]);
+		#end
 	}
 
 	/** Return TRUE if an App instance exists **/
@@ -416,6 +518,22 @@ class App extends dn.Process {
 
 		super.update();
 		// disp.normalMap.scrollDiscrete(0.1, 0.2);
+		fog.updateTime(0.016,0,0.01);
+		if (!cd.has('pad')) {
+			cd.setS('pad', 2);
+			for (p in App.ME.pads) {
+				if (p.index > 0) {
+					trace("***new challenger joins the game !*** " + p.name);
+				} else if (p.index == 0 && !p.connected==true) {
+					trace("First controller is connected and waits" + p.name);
+				}
+			}
+		}
+
+		if (ca2.isPressed(Pause)) {
+			engine.fullScreen = !engine.fullScreen;
+			toggleGamePause();
+		}
 		if (ca.isPressed(ScreenshotMode))
 			setScreenshotMode(!screenshotMode);
 

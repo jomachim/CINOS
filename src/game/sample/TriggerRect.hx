@@ -62,6 +62,14 @@ class TriggerRect extends Entity {
 			}
 			for (i in 0...refs.length) {
 				var ref=refs[i];
+				for (stone in sample.FallingStone.ALL) {
+					if (stone.data.iid == ref.entityIid && ref.levelIid==game.currentLevel) {
+						//trace('hellovator');
+						if (stone.activated == false) {
+							stone.activated = true;
+						}
+					}
+				}
 				for (elev in sample.Platform.ALL) {
 					if (elev.data.iid == ref.entityIid && ref.levelIid==game.currentLevel) {
 						//trace('hellovator');
@@ -96,6 +104,7 @@ class TriggerRect extends Entity {
 							//trace("TRIGGERED DOOR ELSEWHERE : "+ref.entityIid);
 						}, true);
 						game.gameStats.registerState(ach);
+						
 						ach = null;
 				}
 

@@ -12,6 +12,7 @@ class WaterPond extends Entity {
 	public var iid:String;
 	public var data:Entity_Water;
 	public var splashfx:dn.heaps.Sfx;
+	public var maxHei:Null<Float>;
 
 	// public var collides:Bool = false;
 	var collides(get, never):Bool;
@@ -43,7 +44,7 @@ class WaterPond extends Entity {
 		ALL.push(this);
 		data = d;
 		iid = d.iid;
-		entered = false;
+		entered = false;		
 		waterColor = Col.fromInt(d.f_Color_int);
 		activated = d.f_activated;
 		if (game.gameStats.has(data.iid + "activated")) {
@@ -61,6 +62,9 @@ class WaterPond extends Entity {
 		g1 = new h2d.Graphics(spr);
 		wid = d.width;
 		hei = d.height - 8;
+		if(d.f_maxWaterHei!=null){
+			maxHei=(d.f_maxWaterHei.cy*Const.GRID);
+		}
 		if (game.gameStats.has(data.iid + "hei")) {
 			hei = game.gameStats.get(data.iid + "hei").data.hei - 8;
 			// setPosY(game.gameStats.get(data.iid+"hei").data.posY-hei);
@@ -91,6 +95,12 @@ class WaterPond extends Entity {
 		if (hei > level.pxHei - 32) {
 			activated = false;
 		}
+		if(maxHei!=null){
+			if(sprY<maxHei){
+				hei=maxHei;
+				activated = false;
+			}
+		}
 		if (inflow != null) {
 			for (w in sample.Shower.ALL) {
 				if (w.data.iid == inflow.entityIid) {
@@ -105,7 +115,12 @@ class WaterPond extends Entity {
 		}
 		if (activated == true && raisewater != 0.0) {
 			hei += raisewater;
-			setPosY(sprY - raisewater);
+			if(maxHei==null){
+				setPosY(sprY - raisewater);
+			}else if(sprY<maxHei){
+				setPosY(sprY - raisewater);
+			}
+			
 			if (!cd.has('flash')) {
 				fx.flashBangEaseInS(waterColor, 0.7, 0.2);
 				cd.setMs('flash', 1000);
@@ -128,7 +143,9 @@ class WaterPond extends Entity {
 		if (game.player.cd.has('dashing')
 			&& game.player.v.dy >= 0
 			&& game.player.attachY + 4 >= cy * 16 + 8
-			&& game.player.attachY <= cy * 16 + 8) {
+			&& game.player.attachY <= cy * 16 + 8
+			&& game.player.attachX <= cx*16 + wid
+			&& game.player.attachX >= cx*16) {
 			game.player.v.dy = -0.34;
 			fx.splash(game.player.attachX, game.player.attachY + 8, (cy + yr) * Const.GRID + 8, M.fabs(game.player.v.dy), waterColor);
 			S.splash01().play(false, App.ME.options.volume * 0.25);

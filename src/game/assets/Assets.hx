@@ -17,22 +17,27 @@ class Assets {
 	public static var tiles:SpriteLib;
 
 	public static var hero:SpriteLib;
+	public static var heroBig:SpriteLib;
 	public static var boss:SpriteLib;
 	public static var ventilo:SpriteLib;
 	public static var platform:SpriteLib;
 	public static var computer:SpriteLib;
 	public static var bat:SpriteLib;
 	public static var rat:SpriteLib;
+	public static var fish:SpriteLib;
 	public static var door:SpriteLib;
 	public static var chest:SpriteLib;
 	public static var led:SpriteLib;
 	public static var sensor:SpriteLib;
+	public static var flower:SpriteLib;
+	public static var blob:SpriteLib;
 	public static var tourette:SpriteLib;
 	public static var normdisp:Bitmap;
 	public static var sphereMap:Bitmap;
 	public static var waterfall:Bitmap;
 	public static var introPat:Bitmap;
 	public static var naledition:Bitmap;
+	
 	static var palette:Array<Col> = [];
 
 	/** LDtk world data **/
@@ -78,17 +83,21 @@ class Assets {
 		tiles.defineAnim("fxPower", "0-2(1)");
 		tiles.defineAnim("fxPortal", "0-3(2)");
 		hero = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.hero.toAseprite());
+		heroBig = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.heroBig.toAseprite());
 		boss = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.boss.toAseprite());
 		ventilo = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.ventilo.toAseprite());
 		platform = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.platform.toAseprite());
 		computer = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.computer.toAseprite());
 		door = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.door.toAseprite());
 		rat = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.rat.toAseprite());
+		fish = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.fish.toAseprite());
 		bat = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.bat.toAseprite());
 		chest = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.chest.toAseprite());
 		led = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.led.toAseprite());
 		tourette = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.tourette.toAseprite());
 		sensor = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.sensor.toAseprite());
+		blob = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.blob.toAseprite());
+		flower = dn.heaps.assets.Aseprite.convertToSLib(Const.FPS, hxd.Res.atlas.flower.toAseprite());
 		// Hot-reloading of CastleDB
 		#if debug
 		hxd.Res.data.watch(function() {
@@ -179,6 +188,7 @@ class Assets {
 		tourette.tmod = tmod;
 		chest.tmod = tmod;
 		door.tmod = tmod;
+		blob.tmod = tmod;
 
 		// <-- add other atlas TMOD updates here
 	}

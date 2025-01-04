@@ -19,6 +19,7 @@ class DeathScreen extends AppChildProcess {
 	var bgCol:h2d.Bitmap;
 	var rect:h2d.Graphics;
 	var texte:h2d.Text;
+	var fog:sample.FogFilter;
 
 	public function new(parent:Process) {
 		super();
@@ -26,6 +27,8 @@ class DeathScreen extends AppChildProcess {
 		ready = false;
 		// createRootInLayers(parent.root, Const.DP_UI);
 		racine = new Layers(root);
+		fog = new sample.FogFilter();
+		racine.filter=fog;
 		cd = new dn.Cooldown(Const.FPS);
 		ca = App.ME.controller.createAccess();
 		S.drama01().play(false, App.ME.options.volume*0.5).pitchRandomly(0.14);
@@ -34,9 +37,9 @@ class DeathScreen extends AppChildProcess {
 
 		rect = new h2d.Graphics(racine);
 		rect.beginFill(Black, 0.85);
-		rect.drawRect(0, 0, w(), h());
+		rect.drawRect(0, 0, stageWid, stageHei);
 		racine.under(rect);
-		rect.x = -w();
+		rect.x = -stageWid;
 		texte = new h2d.Text(Assets.fontPixel, racine);
 		//texte.font=hxd.res.DefaultFont.get();		
 		texte.filter = new dn.heaps.filter.PixelOutline(0x761B1B, 0.8);
@@ -44,8 +47,8 @@ class DeathScreen extends AppChildProcess {
 		texte.textColor = 0xff0000;
 		texte.textAlign = Center;
 		texte.text = 'GAME OVER';
-		texte.x = w() * 0.5;
-		texte.y = h() * 0.5;
+		texte.x = stageWid * 0.5;
+		texte.y = stageHei * 0.5;
 		tw.createS(rect.x, 0, 0.5).end(() -> {
 			ready = true;
 		});
@@ -55,6 +58,7 @@ class DeathScreen extends AppChildProcess {
 
 	override function update() {
 		super.update();
+		fog.updateTime(0.16,0,0,0x55FF0000);
 		texte.scaleX=4+(3*cd.getRatio('gameOver'));
 		texte.scaleY=texte.scaleX;
 		texte.alpha=1-cd.getRatio('gameOver');
@@ -80,6 +84,6 @@ class DeathScreen extends AppChildProcess {
 
 	override function onResize() {
 		super.onResize();
-		texte.setScale(dn.heaps.Scaler.bestFit_i(w() * 0.5, h() * 0.5));
+		texte.setScale(dn.heaps.Scaler.bestFit_i(stageWid * 0.5, stageHei * 0.5));
 	}
 }

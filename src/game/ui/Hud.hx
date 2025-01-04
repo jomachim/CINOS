@@ -66,7 +66,7 @@ class Hud extends GameChildProcess {
 	override function onResize() {
 		super.onResize();
 		root.setScale(Const.UI_SCALE);
-		flow.x = Std.int( 0.5 * w()/Const.UI_SCALE - flow.outerWidth*0.5 );
+		flow.x = Std.int( 0.5 * stageWid/Const.UI_SCALE - flow.outerWidth*0.5 );
 		flow.y = 1;
 	}
 
@@ -90,7 +90,7 @@ class Hud extends GameChildProcess {
 		else
 			debugText.text += "\n"+v;
 		debugText.visible = true;
-		debugText.x = Std.int( w()/Const.UI_SCALE - 4 - debugText.textWidth );
+		debugText.x = Std.int( stageWid/Const.UI_SCALE - 4 - debugText.textWidth );
 	}
 
 
@@ -109,7 +109,7 @@ class Hud extends GameChildProcess {
 		// Text
 		var tf = new h2d.Text(Assets.fontPixel, f);
 		tf.text = str;
-		tf.maxWidth = 0.6 * w()/Const.UI_SCALE;
+		tf.maxWidth = 0.6 * stageWid/Const.UI_SCALE;
 		tf.textColor = 0xffffff;
 		tf.filter = new dn.heaps.filter.PixelOutline( color.toBlack(0.2) );
 

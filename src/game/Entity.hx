@@ -323,6 +323,19 @@ class Entity {
 
 	public var outline:dn.heaps.filter.PixelOutline = new dn.heaps.filter.PixelOutline(0x000000, 0.5);
 
+	// Grappin
+	public var isGrappling:Bool = false;
+	public var grapplingPointX:Float = 0;
+	public var grapplingPointY:Float = 0;
+	public var grappleLength:Float = 0;
+	public var grappleAngle:Float = 0;
+	public var grappleVelocity:Float = 0;
+
+	// Éléments visuels pour le grappin
+    var grappleGraphics:h2d.Graphics;
+    var debugScene:h2d.Scene;
+
+
 	/**
 		Constructor
 	**/
@@ -344,17 +357,90 @@ class Entity {
 		allVelocities.push(v);
 		allVelocities.push(vBump);
 
+		grappleGraphics = new h2d.Graphics();
+        /*debugScene = Game.ME.scroller.getScene(); // Assurez-vous que cette référence est correcte pour votre jeu
+        debugScene.addChild(grappleGraphics);*/
+
 		spr = new HSprite(Assets.tiles);
 		Game.ME.scroller.add(spr, Const.DP_MAIN);
+		Game.ME.scroller.add(grappleGraphics, Const.DP_MAIN);
 		spr.colorAdd = new h3d.Vector();
 		baseColor = new h3d.Vector();
 		blinkColor = new h3d.Vector();
 		spr.colorMatrix = colorMatrix = h3d.Matrix.I();
 		spr.setCenterRatio(pivotX, pivotY);
-		spr.filter = new Group([new Nothing(),outline]);
+		spr.filter = new Group([new Nothing(), outline]);
 		if (ui.Console.ME.hasFlag("bounds"))
 			enableDebugBounds();
 	}
+
+	public function getLocalMouseCoordinates(): h2d.col.Point {
+		// Obtenir les coordonnées globales de la souris
+		var globalMouseX = hxd.Window.getInstance().mouseX;
+		var globalMouseY = hxd.Window.getInstance().mouseY;
+		var localX = (globalMouseX - Game.ME.scroller.x) / Game.ME.scroller.scaleX;
+    	var localY = (globalMouseY - Game.ME.scroller.y) / Game.ME.scroller.scaleY;
+	
+		// Convertir les coordonnées globales en coordonnées locales par rapport au scroller
+		var localPoint =new h2d.col.Point(localX, localY);// Game.ME.scroller.globalToLocal();
+	
+		return localPoint;
+	}
+	public function shootGrapple(targetX:Float, targetY:Float) {
+		if (!isGrappling) {
+			isGrappling = true;
+			trace("grappling");
+			targetX= getLocalMouseCoordinates().x;
+			targetY= getLocalMouseCoordinates().y;
+			grapplingPointX =targetX;
+			grapplingPointY =targetY;
+			grappleLength = Math.sqrt(Math.pow(targetX - attachX, 2) + Math.pow(targetY - attachY, 2));
+			grappleAngle = Math.atan2(targetY - attachY, targetX - attachX);
+			grappleVelocity = 0;
+			 // Dessiner le grappin initial
+			 drawGrapple();
+		}
+	}
+	
+	public function releaseGrapple() {
+		if (isGrappling) {
+			isGrappling = false;
+			trace('ungrappling');
+			// Appliquer une impulsion basée sur la vitesse actuelle du balancier
+			var impulseX = Math.cos(grappleAngle) * grappleVelocity;
+			var impulseY = Math.sin(grappleAngle) * grappleVelocity;
+			v.dx+=impulseX;
+			v.dy+=impulseY;
+			var tangentialVelocity = grappleVelocity * grappleLength;
+			var releaseAngle = grappleAngle + Math.PI/2; // Tangent à la trajectoire
+	
+			// Appliquer cette vitesse à l'entité
+			v.dx += Math.cos(releaseAngle) * tangentialVelocity;
+			v.dy += Math.sin(releaseAngle) * tangentialVelocity;
+			clearGrappleGraphics();
+		}
+	}
+
+	function drawGrapple() {
+        grappleGraphics.clear();
+
+        // Dessiner la ligne du grappin
+        grappleGraphics.lineStyle(2, 0xFF0000);
+        grappleGraphics.moveTo(attachX, attachY);
+        grappleGraphics.lineTo(grapplingPointX, grapplingPointY);
+
+        // Dessiner le point d'accroche
+        grappleGraphics.lineStyle(1, 0x00FF00);
+        grappleGraphics.drawCircle(grapplingPointX, grapplingPointY, 5);
+
+        // Dessiner le point de l'entité
+        grappleGraphics.lineStyle(1, 0x0000FF);
+        grappleGraphics.drawCircle(attachX, attachY, 5);
+    }
+
+    function clearGrappleGraphics() {
+        grappleGraphics.clear();
+    }
 
 	/** Remove sprite from display context. Only do that if you're 100% sure your entity won't need the `spr` instance itself. **/
 	function noSprite() {
@@ -440,12 +526,13 @@ class Entity {
 		onPosManuallyChangedBoth();
 	}
 
-	public function setPosX(x:Float){
+	public function setPosX(x:Float) {
 		cx = Std.int(x / Const.GRID);
 		xr = (x - cx * Const.GRID) / Const.GRID;
 		onPosManuallyChangedX();
 	};
-	public function setPosY(y:Float){
+
+	public function setPosY(y:Float) {
 		cy = Std.int(y / Const.GRID);
 		yr = (y - cy * Const.GRID) / Const.GRID;
 		onPosManuallyChangedY();
@@ -579,9 +666,9 @@ class Entity {
 	/** Check if the grid-based line between this and given target isn't blocked by some obstacle **/
 	public inline function sightCheck(?e:Entity, ?tcx:Int, ?tcy:Int) {
 		if (e != null)
-			return e == this ? true : dn.Bresenham.checkThinLine(cx, cy, e.cx, e.cy, canSeeThrough);
+			return e == this ? true : dn.geom.Bresenham.checkThinLine(cx, cy, e.cx, e.cy, canSeeThrough);
 		else
-			return dn.Bresenham.checkThinLine(cx, cy, tcx, tcy, canSeeThrough);
+			return dn.geom.Bresenham.checkThinLine(cx, cy, tcx, tcy, canSeeThrough);
 	}
 
 	/** Create a LPoint instance from current coordinates **/
@@ -859,6 +946,35 @@ class Entity {
 		if (!ui.Console.ME.hasFlag("bounds") && debugBounds != null)
 			disableDebugBounds();
 		#end
+
+		if (isGrappling) {
+			// Physique du pendule
+			var gravity = 9; // Ajustez selon vos besoins
+			var dampening = 0.999; // Facteur d'amortissement
+	
+			// Calculer l'accélération angulaire
+			var accelerationAngle:Float = 0.0;
+			if(attachX<grapplingPointX){
+				accelerationAngle+=gravity * Math.sin(grappleAngle) / grappleLength;
+			}else{
+				accelerationAngle-=gravity * Math.sin(grappleAngle) / grappleLength;
+			}
+			
+			
+			// Mettre à jour la vitesse angulaire
+			grappleVelocity += accelerationAngle * tmod;
+			grappleVelocity *= dampening;
+	
+			// Mettre à jour l'angle
+			grappleAngle += grappleVelocity * tmod;
+	
+			// Calculer la nouvelle position
+			var newX = grapplingPointX - Math.cos(grappleAngle) * grappleLength;
+			var newY = grapplingPointY - Math.sin(grappleAngle) * grappleLength;
+	
+			// Mettre à jour la position de l'entité
+			setPosPixel(newX, newY);
+		}
 	}
 
 	/**
@@ -932,6 +1048,9 @@ class Entity {
 		Main loop, but it only runs at a "guaranteed" 30 fps (so it might not be called during some frames, if the app runs at 60fps). This is usually where most gameplay elements affecting physics should occur, to ensure these will not depend on FPS at all.
 	**/
 	public function fixedUpdate() {
+
+		
+
 		if (cd.has('hitBump')) {
 			cd.setS('hitBlink', 0.5);
 		}

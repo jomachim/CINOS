@@ -50,8 +50,8 @@ class Modal extends ui.Window {
 	override function onResize() {
 		super.onResize();
 		if( mask!=null ) {
-			var w = M.ceil( w()/Const.UI_SCALE );
-			var h = M.ceil( h()/Const.UI_SCALE );
+			var w = M.ceil( stageWid/Const.UI_SCALE );
+			var h = M.ceil( stageHei/Const.UI_SCALE );
 			mask.minWidth = w;
 			mask.minHeight = h;
 		}

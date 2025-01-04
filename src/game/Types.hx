@@ -73,9 +73,12 @@ enum abstract LevelMark(Int) to Int {
 	var M_JUMPER;
 	var M_ICE;
 	var M_SWIRL;
+	var M_SPIKES;
 
 }
-
+enum LevelWaterMark {
+	WaterLevel;
+}
 enum abstract LevelSubMark(Int) to Int {
 	var SM_None; // 0
 }

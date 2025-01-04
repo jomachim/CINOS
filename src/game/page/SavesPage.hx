@@ -47,20 +47,20 @@ class SavesPage extends dn.Process {
 		racine.add(bgCol, Const.DP_MAIN);
 		pressStart = new Text(Assets.fontPixel, racine);
 		warning = new Text(Assets.fontPixel, racine);
-		warning.color = new h3d.Vector(1, 0, 0);
+		warning.color = new h3d.Vector4(1, 0, 0);
 		warning.textAlign = Align.Center;
-		warning.x = w() * 0.5;
-		warning.y = h() * 0.5;
+		warning.x = stageWid * 0.5;
+		warning.y = stageHei * 0.5;
 		pressStart.text = "SELECT A SAVE ";
 		pressStart.textAlign = Align.Center;
-		tw.createS(pressStart.x, w() * 0.5, 0.5).end(()->{
+		tw.createS(pressStart.x, stageWid * 0.5, 0.5).end(()->{
 			ready=true;
 		});
 		var rect = new h2d.Graphics(racine);
 		rect.beginFill(Black, 0.85);
-		rect.drawRect(0, 0, w(), h());
+		rect.drawRect(0, 0, stageWid, stageHei);
 		racine.under(rect);
-		rect.x = -w();
+		rect.x = -stageWid;
 		tw.createS(rect.x, 0, 0.5);
 
 		for (i in 0...saves.length) {
@@ -72,11 +72,11 @@ class SavesPage extends dn.Process {
 			tx.setScale(2);
 			// bouton.addChild(tx);
 			tx.text = Std.string(s.data.currentWorldID + " : " + s.data.currentLevelID);
-			bouton.x = w() * 0.5 - 100;
-			bouton.y = h() * 0.5 - 100;
+			bouton.x = stageWid * 0.5 - 100;
+			bouton.y = stageHei * 0.5 - 100;
 			var cb=()->{
 				App.ME.currentSavedGame = s;
-                App.ME.options.volume=s.data.volume;
+                App.ME.options.volume=1;//s.data.options.volume;
 				TitleScreen.ME.ca.unlock();
 				destroy();
 				if(TitleScreen.ME.zik.isPlaying())
@@ -123,7 +123,7 @@ class SavesPage extends dn.Process {
 
 	override function onResize() {
 		super.onResize();
-		upscale = dn.heaps.Scaler.bestFit_i(w() * 0.5, h() * 0.5); // only height matters
+		upscale = dn.heaps.Scaler.bestFit_i(stageWid * 0.5, stageHei * 0.5); // only height matters
 		pressStart.setScale(upscale);
 		warning.setScale(upscale);
 	}

@@ -33,8 +33,8 @@ class Window extends dn.Process {
 
 		root.setScale(Const.UI_SCALE);
 
-		var w = M.ceil( w()/Const.UI_SCALE );
-		var h = M.ceil( h()/Const.UI_SCALE );
+		var w = M.ceil( stageWid/Const.UI_SCALE );
+		var h = M.ceil( stageHei/Const.UI_SCALE );
 		win.x = Std.int( w*0.5 - win.outerWidth*0.5 );
 		win.y = Std.int( h*0.5 - win.outerHeight*0.5 );
 	}

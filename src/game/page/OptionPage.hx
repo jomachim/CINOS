@@ -46,18 +46,18 @@ class OptionPage extends dn.Process {
 		racine.add(bgCol, Const.DP_MAIN);
 		pressStart = new Text(Assets.fontPixel, racine);
 		warning = new Text(Assets.fontPixel, racine);
-		warning.color = new h3d.Vector(1, 0, 0);
+		warning.color = new h3d.Vector4(1, 0, 0);
 		warning.textAlign = Align.Center;
-		warning.x = w() * 0.5;
-		warning.y = h() * 0.5;
+		warning.x = stageWid * 0.5;
+		warning.y = stageHei * 0.5;
 		pressStart.text = "OPTIONS";
 		pressStart.textAlign = Align.Center;
-		tw.createS(pressStart.x, w() * 0.5, 0.5);
+		tw.createS(pressStart.x, stageWid * 0.5, 0.5);
 		rect = new h2d.Graphics(racine);
 		rect.beginFill(Black, 0.85);
-		rect.drawRect(0, 0, w(), h());
+		rect.drawRect(0, 0, stageWid, stageHei);
 		racine.under(rect);
-		rect.x = -w();
+		rect.x = -stageWid;
 		tw.createS(rect.x, 0, 0.5).end(() -> {
 			ready = true;
 		});
@@ -69,8 +69,8 @@ class OptionPage extends dn.Process {
 		tx.setScale(2);
 		// bouton.addChild(tx);
 		tx.text = App.ME.options.volume == 0 ? Std.string("VOLUME ON") : Std.string("VOLUME OFF");
-		bouton.x = w() * 0.5 - 100;
-		bouton.y = h() * 0.5 - 100;
+		bouton.x = stageWid * 0.5 - 100;
+		bouton.y = stageHei * 0.5 - 100;
 		var cb = () -> {
 			App.ME.options.volume = App.ME.options.volume == 0 ? 1 : 0;
 			if (Game.exists()) {
@@ -108,8 +108,8 @@ class OptionPage extends dn.Process {
 		txs.setScale(2);
 		// bouton.addChild(tx);
 		txs.text = App.ME.options.shaders == false ? Std.string("SHADERS ON") : Std.string("SHADERS OFF");
-		boutShad.x = w() * 0.5 - 100;
-		boutShad.y = h() * 0.5 - 100 + 28;
+		boutShad.x = stageWid * 0.5 - 100;
+		boutShad.y = stageHei * 0.5 - 100 + 28;
 		var cb = () -> {
 			App.ME.options.shaders = App.ME.options.shaders == false ? true : false;
 			txs.text = App.ME.options.shaders == false ? Std.string("SHADERS ON") : Std.string("SHADERS OFF");
@@ -203,7 +203,7 @@ class OptionPage extends dn.Process {
 
 	override function onResize() {
 		super.onResize();
-		upscale = dn.heaps.Scaler.bestFit_i(w() * 0.5, h() * 0.5); // only height matters
+		upscale = dn.heaps.Scaler.bestFit_i(stageWid * 0.5, stageHei * 0.5); // only height matters
 		pressStart.setScale(upscale);
 		warning.setScale(upscale);
 	}

@@ -3,3 +3,5 @@ _base.hxml
 -D windowTitle=Cinos a lick to the paste
 -hl bin/client.hl
 -lib hlsdl
+-lib hlopenal
+-D hl-ver=1.14.0

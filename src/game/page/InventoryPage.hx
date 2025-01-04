@@ -21,9 +21,9 @@ class InventoryPage extends GameChildProcess {
 
 		var rect = new h2d.Graphics(racine);
 		rect.beginFill(Black, 0.85);
-		rect.drawRect(0, 0, w(), h());
+		rect.drawRect(0, 0, stageWid, stageHei);
 		racine.under(rect);
-		rect.x = -w();
+		rect.x = -stageWid;
 		tw.createS(rect.x, 0, 0.5).end(() -> {
 			ready = true;
 		});
@@ -38,9 +38,9 @@ class InventoryPage extends GameChildProcess {
 		mainFlow.padding = 8;
 		mainFlow.colWidth = 32;
 		mainFlow.lineHeight = 32;
-		mainFlow.maxHeight = h();
-		mainFlow.maxWidth = Std.int(w()*0.5);
-		mainFlow.minWidth = Std.int(w() * 0.15);
+		mainFlow.maxHeight = stageHei;
+		mainFlow.maxWidth = Std.int(stageWid*0.5);
+		mainFlow.minWidth = Std.int(stageWid * 0.15);
 		mainFlow.backgroundTile = Assets.tiles.getTile(D.tiles.mainFlowBox);
 		mainFlow.borderWidth = 3;
 		mainFlow.borderHeight = 3;
@@ -52,7 +52,7 @@ class InventoryPage extends GameChildProcess {
 		flowMap.padding = 8;
 		//flowMap.colWidth = 32;
 		flowMap.minHeight = 196;
-		flowMap.maxHeight = Std.int(h() * 0.25);
+		flowMap.maxHeight = Std.int(stageHei * 0.25);
 		flowMap.minWidth = 128;
 		flowMap.maxWidth = 512;
 		flowMap.backgroundTile = Assets.tiles.getTile(D.tiles.mapBox);
@@ -68,9 +68,9 @@ class InventoryPage extends GameChildProcess {
 		flow.padding = 8;
 		flow.colWidth = 32;
 		flow.lineHeight = 32;
-		flow.maxHeight = Std.int(h() * 0.25*Const.SCALE);
-		flow.maxWidth = Std.int(w() * 0.25*Const.SCALE);
-		flow.minWidth = Std.int(w() * 0.15*Const.SCALE);
+		flow.maxHeight = Std.int(stageHei * 0.25*Const.SCALE);
+		flow.maxWidth = Std.int(stageWid * 0.25*Const.SCALE);
+		flow.minWidth = Std.int(stageWid * 0.15*Const.SCALE);
 		flow.backgroundTile = Assets.tiles.getTile(D.tiles.itemSlot);
 		flow.borderWidth = 4;
 		flow.borderHeight = 4;
